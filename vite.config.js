@@ -3,5 +3,5 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
-  base: "/nombre-de-tu-repo/", // <--- ¡ESTO ES VITAL!
+  base: "/camiones/", // <--- ¡ESTO ES VITAL!
 });
