@@ -1,0 +1,25 @@
+/* Hacer que el calendario sea oscuro para que combine con tu app */
+.react-datepicker {
+  background-color: #111827 !important; /* bg-gray-900 */
+  border: 1px solid #374151 !important; /* border-gray-700 */
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.react-datepicker__header {
+  background-color: #1f2937 !important; /* bg-gray-800 */
+  border-bottom: 1px solid #374151 !important;
+}
+
+.react-datepicker__current-month,
+.react-datepicker__day-name,
+.react-datepicker__day {
+  color: #fff !important;
+}
+
+.react-datepicker__day:hover {
+  background-color: #3b82f6 !important; /* azul */
+}
+
+.react-datepicker__day--selected {
+  background-color: #2563eb !important;
+}
