@@ -232,15 +232,15 @@ export const RegistrarCalidad = ({ onVolver }: { onVolver: () => void }) => {
           )}
 
           {/* MANUAL DE AYUDA */}
-          <div className="mt-8 border-t border-gray-800 pt-4">
+          <div className="mt-6 border border-gray-800 rounded-sm overflow-hidden font-mono">
             <button
               onClick={() => setShowManual(!showManual)}
-              className="w-full text-[10px] text-gray-500 hover:text-cyan-400 flex justify-between uppercase font-bold"
+              className="w-full bg-gray-800/50 p-2 text-[10px] text-cyan-500 flex justify-between items-center hover:bg-gray-800 transition-colors uppercase font-bold italic"
             >
-              <span>{showManual ? "▼" : "▶"} Ayuda Calidad</span>
+              <span>{showManual ? "▼" : "▶"} Manual de Operaciones</span>
             </button>
             {showManual && (
-              <div className="mt-3 p-3 bg-black/40 border border-gray-800 text-[9px] text-gray-400 space-y-3">
+              <div className="p-3 bg-black/40 border border-gray-800 text-[9px] text-gray-400 space-y-3">
                 <p>
                   • Los camiones aparecen aquí tras marcar el **Arribo** en
                   Recepción.
