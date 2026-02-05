@@ -3,6 +3,8 @@ import { useLocalStorage } from "../hooks/useLocalStorage";
 import DatePicker, { registerLocale } from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { es } from "date-fns/locale/es";
+// 1. IMPORTAR SONNER
+import { toast } from "sonner";
 
 registerLocale("es", es);
 
@@ -27,17 +29,15 @@ interface Producto {
   nombre: string;
 }
 
-// Interfaz para el estado del Modal
+// Interfaz Simplificada para el Modal (Solo Confirmación)
 interface ModalState {
   isOpen: boolean;
-  type: "INFO" | "ERROR" | "CONFIRM";
   message: string;
   onConfirm?: () => void;
 }
 
 export const SilosYRechazos = ({ onVolver }: { onVolver: () => void }) => {
   const [operaciones] = useLocalStorage<Operacion[]>("operaciones_dat", []);
-  // Agregamos setSilos para poder modificar el stock
   const [silos, setSilos] = useLocalStorage<Silo[]>("silos_dat", []);
   const [productos] = useLocalStorage<Producto[]>("productos_dat", []);
 
@@ -48,10 +48,9 @@ export const SilosYRechazos = ({ onVolver }: { onVolver: () => void }) => {
   const [siloAjuste, setSiloAjuste] = useState<Silo | null>(null);
   const [cantidadSalida, setCantidadSalida] = useState("");
 
-  // --- ESTADO DEL MODAL (SISTEMA DE ALERTAS) ---
+  // --- ESTADO DEL MODAL ---
   const [modal, setModal] = useState<ModalState>({
     isOpen: false,
-    type: "INFO",
     message: "",
   });
 
@@ -82,30 +81,23 @@ export const SilosYRechazos = ({ onVolver }: { onVolver: () => void }) => {
     if (!siloAjuste) return;
     const kilos = Number(cantidadSalida);
 
-    // Validaciones
+    // 1. Validaciones con TOAST
     if (!cantidadSalida || kilos <= 0) {
-      setModal({
-        isOpen: true,
-        type: "ERROR",
-        message: "❗ Ingrese una cantidad válida mayor a 0.",
-      });
+      toast.error("ERROR: INGRESE UNA CANTIDAD MAYOR A 0");
       return;
     }
 
     if (kilos > siloAjuste.stock) {
-      setModal({
-        isOpen: true,
-        type: "ERROR",
-        message: `❗ Stock insuficiente.\nEl silo solo tiene ${siloAjuste.stock} KG.`,
+      toast.error("STOCK INSUFICIENTE", {
+        description: `El silo solo tiene ${siloAjuste.stock} KG disponibles.`,
       });
       return;
     }
 
-    // Pedir confirmación con el Modal del Sistema
+    // 2. Pedir confirmación con el Modal (Acción Crítica)
     setModal({
       isOpen: true,
-      type: "CONFIRM",
-      message: `¿Confirmar salida de ${kilos} KG del ${siloAjuste.nombre}?`,
+      message: `¿Confirmar salida de ${kilos.toLocaleString()} KG del ${siloAjuste.nombre}?`,
       onConfirm: () => {
         // Ejecutar la resta de stock
         const nuevosSilos = silos.map((s) =>
@@ -114,14 +106,14 @@ export const SilosYRechazos = ({ onVolver }: { onVolver: () => void }) => {
 
         setSilos(nuevosSilos);
 
-        // Mensaje de éxito
-        setModal({
-          isOpen: true,
-          type: "INFO",
-          message: "✅ Salida de mercadería registrada correctamente.",
+        // 3. Notificación de Éxito
+        toast.success("SALIDA REGISTRADA CORRECTAMENTE", {
+          description: `Nuevo stock en ${siloAjuste.nombre}: ${(siloAjuste.stock - kilos).toLocaleString()} KG`,
         });
+
         setSiloAjuste(null);
         setCantidadSalida("");
+        closeModal();
       },
     });
   };
@@ -132,7 +124,7 @@ export const SilosYRechazos = ({ onVolver }: { onVolver: () => void }) => {
       <div
         className={`flex items-center justify-center min-h-screen w-full bg-gray-100 dark:bg-black p-4 transition-all duration-300 ${modal.isOpen || siloAjuste ? "opacity-60 blur-[2px] pointer-events-none scale-[0.99]" : "opacity-100 blur-0 scale-100"}`}
       >
-        {/* CORRECCIÓN: dark:bg-[#0a0a0a] en lugar de gray-900 para evitar el tono azul */}
+        {/* CORRECCIÓN: dark:bg-[#0a0a0a] */}
         <div className="border-2 border-yellow-500 dark:border-yellow-600 p-8 bg-white dark:bg-[#0a0a0a] shadow-xl dark:shadow-[0_0_20px_rgba(234,179,8,0.2)] w-full max-w-2xl transition-colors duration-300">
           <h2 className="text-center mb-8 text-xl font-bold tracking-[0.2em] text-yellow-600 dark:text-yellow-500 border-b-2 border-yellow-600 dark:border-yellow-900 pb-4 uppercase italic">
             [ Gestión y Monitoreo ]
@@ -198,7 +190,7 @@ export const SilosYRechazos = ({ onVolver }: { onVolver: () => void }) => {
                           </span>
                         </div>
 
-                        {/* BOTÓN DE ACCIÓN (NUEVO) */}
+                        {/* BOTÓN DE ACCIÓN */}
                         <button
                           onClick={() => abrirPanelSalida(silo)}
                           className="w-full text-[9px] border border-yellow-600/50 dark:border-yellow-900/50 text-yellow-800 dark:text-yellow-700 hover:bg-yellow-500 dark:hover:bg-yellow-900 hover:text-white uppercase py-1 transition-colors font-bold pointer-events-auto"
@@ -216,7 +208,7 @@ export const SilosYRechazos = ({ onVolver }: { onVolver: () => void }) => {
               </div>
             </div>
 
-            {/* COLUMNA DERECHA: RECHAZOS (Sin cambios funcionales) */}
+            {/* COLUMNA DERECHA: RECHAZOS */}
             <div className="flex flex-col">
               <p className="text-[10px] text-red-700 dark:text-red-700 uppercase tracking-widest mb-4 font-bold border-b border-red-200 dark:border-red-900/30 pb-1">
                 ➤ Historial de Rechazos
@@ -302,7 +294,7 @@ export const SilosYRechazos = ({ onVolver }: { onVolver: () => void }) => {
       {/* --- PANEL FLOTANTE: REGISTRO DE SALIDA (CAPA INTERMEDIA) --- */}
       {siloAjuste && !modal.isOpen && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 backdrop-blur-sm pointer-events-auto">
-          {/* CORRECCIÓN: dark:bg-[#0a0a0a] aquí también */}
+          {/* CORRECCIÓN: dark:bg-[#0a0a0a] */}
           <div className="w-full max-w-sm border-2 border-yellow-500 dark:border-yellow-600 bg-white dark:bg-[#0a0a0a] p-6 shadow-2xl animate-in zoom-in duration-200">
             <div className="text-center border-b border-yellow-200 dark:border-yellow-900/50 pb-4 mb-4">
               <h3 className="text-yellow-600 dark:text-yellow-500 font-bold uppercase tracking-widest text-sm">
@@ -329,7 +321,7 @@ export const SilosYRechazos = ({ onVolver }: { onVolver: () => void }) => {
                 onChange={(e) => setCantidadSalida(e.target.value)}
               />
               <p className="text-[9px] text-right text-gray-500 dark:text-gray-600">
-                Stock actual: {siloAjuste.stock} KG
+                Stock actual: {siloAjuste.stock.toLocaleString()} KG
               </p>
             </div>
 
@@ -351,33 +343,12 @@ export const SilosYRechazos = ({ onVolver }: { onVolver: () => void }) => {
         </div>
       )}
 
-      {/* --- MODAL DEL SISTEMA (CAPA SUPERIOR) --- */}
+      {/* --- MODAL DEL SISTEMA (SOLO CONFIRMACIÓN) --- */}
       {modal.isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm pointer-events-auto transition-all duration-300">
-          {/* CORRECCIÓN: dark:bg-[#0a0a0a] aquí también */}
-          <div
-            className={`w-full max-w-sm border-2 p-6 bg-white dark:bg-[#0a0a0a] shadow-2xl dark:shadow-[0_0_50px_rgba(0,0,0,0.8)] animate-in zoom-in duration-200 ${
-              modal.type === "ERROR"
-                ? "border-red-600 shadow-red-500/40 dark:shadow-red-900/40"
-                : modal.type === "CONFIRM"
-                  ? "border-yellow-500 dark:border-yellow-600 shadow-yellow-500/40 dark:shadow-yellow-900/40"
-                  : "border-emerald-600 shadow-emerald-500/40 dark:shadow-emerald-900/40"
-            }`}
-          >
-            <h4
-              className={`text-center font-bold mb-4 tracking-widest uppercase text-[10px] ${
-                modal.type === "ERROR"
-                  ? "text-red-600 dark:text-red-500"
-                  : modal.type === "CONFIRM"
-                    ? "text-yellow-600 dark:text-yellow-500"
-                    : "text-emerald-600 dark:text-emerald-500"
-              }`}
-            >
-              {modal.type === "ERROR"
-                ? "[ ! ] ALERTA"
-                : modal.type === "CONFIRM"
-                  ? "[ ? ] CONFIRMAR"
-                  : "[ i ] SISTEMA"}
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-transparent backdrop-blur-sm pointer-events-auto transition-all duration-300">
+          <div className="w-full max-w-sm border-2 p-6 bg-white dark:bg-[#0a0a0a] shadow-2xl dark:shadow-[0_0_50px_rgba(0,0,0,0.8)] animate-in zoom-in duration-200 border-yellow-500 dark:border-yellow-600 shadow-yellow-500/40 dark:shadow-yellow-900/40">
+            <h4 className="text-center font-bold mb-4 tracking-widest uppercase text-[10px] text-yellow-600 dark:text-yellow-500">
+              [ ? ] CONFIRMAR
             </h4>
 
             <p className="text-gray-900 dark:text-white text-center text-[11px] mb-6 font-mono uppercase italic leading-tight">
@@ -385,24 +356,16 @@ export const SilosYRechazos = ({ onVolver }: { onVolver: () => void }) => {
             </p>
 
             <div className="flex gap-2">
-              {modal.type === "CONFIRM" && (
-                <button
-                  onClick={closeModal}
-                  className="flex-1 border border-gray-300 dark:border-gray-700 text-gray-500 py-3 text-[10px] uppercase font-bold hover:bg-gray-100 dark:hover:text-white transition-colors"
-                >
-                  Cancelar
-                </button>
-              )}
+              <button
+                onClick={closeModal}
+                className="flex-1 border border-gray-300 dark:border-gray-700 text-gray-500 py-3 text-[10px] uppercase font-bold hover:bg-gray-100 dark:hover:text-white transition-colors"
+              >
+                Cancelar
+              </button>
 
               <button
-                onClick={modal.onConfirm || closeModal}
-                className={`flex-1 py-3 text-[10px] font-bold uppercase transition-all ${
-                  modal.type === "ERROR"
-                    ? "bg-red-100 dark:bg-red-900/40 border border-red-500 dark:border-red-600 text-red-700 dark:text-red-500"
-                    : modal.type === "CONFIRM"
-                      ? "bg-yellow-500 text-white dark:text-black hover:bg-yellow-600 dark:hover:bg-yellow-500"
-                      : "bg-emerald-600 text-white dark:text-black hover:bg-emerald-500 dark:hover:bg-emerald-400"
-                }`}
+                onClick={modal.onConfirm}
+                className="flex-1 py-3 text-[10px] font-bold uppercase transition-all bg-yellow-500 text-white dark:text-black hover:bg-yellow-600 dark:hover:bg-yellow-500"
               >
                 ACEPTAR
               </button>

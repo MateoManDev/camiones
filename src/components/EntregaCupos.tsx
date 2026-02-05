@@ -1,14 +1,14 @@
 import React, { useState } from "react";
 import { useLocalStorage } from "../hooks/useLocalStorage";
+// 1. IMPORTAR LA FUNCIÓN TOAST DE SONNER
+import { toast } from "sonner";
 
-// IMPORTACIONES PARA EL CALENDARIO
 import DatePicker, { registerLocale } from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { es } from "date-fns/locale/es";
 
 registerLocale("es", es);
 
-// --- INTERFACES ---
 interface Operacion {
   patente: string;
   codprod: string;
@@ -24,14 +24,6 @@ interface Producto {
   estado: "A" | "B";
 }
 
-// Interfaz para el estado del Modal
-interface ModalState {
-  isOpen: boolean;
-  type: "INFO" | "ERROR" | "CONFIRM";
-  message: string;
-  onConfirm?: () => void;
-}
-
 export const EntregaCupos = ({ onVolver }: { onVolver: () => void }) => {
   const [productos] = useLocalStorage<Producto[]>("productos_dat", []);
   const [operaciones, setOperaciones] = useLocalStorage<Operacion[]>(
@@ -43,48 +35,27 @@ export const EntregaCupos = ({ onVolver }: { onVolver: () => void }) => {
   const [codProd, setCodProd] = useState("");
   const [startDate, setStartDate] = useState<Date | null>(new Date());
 
-  // --- ESTADO DEL MODAL ---
-  const [modal, setModal] = useState<ModalState>({
-    isOpen: false,
-    type: "INFO",
-    message: "",
-  });
-
-  const closeModal = () => setModal({ ...modal, isOpen: false });
-
   const handleEntregaCupo = () => {
-    // 1. Validar que la fecha no sea nula y formatearla
+    // 1. Validar fecha
     if (!startDate) {
-      setModal({
-        isOpen: true,
-        type: "ERROR",
-        message: "❗ Por favor seleccione una fecha",
-      });
+      toast.error("ERROR: DEBE SELECCIONAR UNA FECHA");
       return;
     }
     const fechaFormateada = startDate.toISOString().split("T")[0];
 
-    // 2. Validar Patente
+    // 2. Validar Patente (6 o 7 caracteres)
     if (patente.length < 6 || patente.length > 7) {
-      setModal({
-        isOpen: true,
-        type: "ERROR",
-        message: "❗ Ingrese una patente válida (6-7 caracteres)",
-      });
+      toast.warning("FORMATO INVÁLIDO: PATENTE DEBE TENER 6-7 CARACTERES");
       return;
     }
 
-    // 3. Verificar duplicados
+    // 3. Verificar duplicados (misma patente, misma fecha)
     const existeCupo = operaciones.find(
       (op) =>
         op.patente === patente.toUpperCase() && op.fechacup === fechaFormateada,
     );
     if (existeCupo) {
-      setModal({
-        isOpen: true,
-        type: "ERROR",
-        message: "⚠️ Ya existe cupo para esta patente en la fecha",
-      });
+      toast.error("DUPLICADO: YA EXISTE CUPO PARA ESTA UNIDAD HOY");
       return;
     }
 
@@ -93,11 +64,7 @@ export const EntregaCupos = ({ onVolver }: { onVolver: () => void }) => {
       (p) => p.codigo === codProd && p.estado === "A",
     );
     if (!productoValido) {
-      setModal({
-        isOpen: true,
-        type: "ERROR",
-        message: "❗ El producto no existe o no está activo",
-      });
+      toast.error("ERROR: PRODUCTO NO VÁLIDO O INACTIVO");
       return;
     }
 
@@ -113,13 +80,12 @@ export const EntregaCupos = ({ onVolver }: { onVolver: () => void }) => {
 
     setOperaciones([...operaciones, nuevaOperacion]);
 
-    // Mensaje de éxito
-    setModal({
-      isOpen: true,
-      type: "INFO",
-      message: "✅ Cupo otorgado exitosamente",
+    // --- ÉXITO CON SONNER ---
+    toast.success(`CUPO OTORGADO: ${patente.toUpperCase()}`, {
+      description: `Producto: ${productoValido.nombre} - Fecha: ${fechaFormateada}`,
     });
 
+    // Limpiar formulario
     setPatente("");
     setCodProd("");
   };
@@ -127,10 +93,8 @@ export const EntregaCupos = ({ onVolver }: { onVolver: () => void }) => {
   return (
     <div className="relative min-h-screen bg-gray-100 dark:bg-black font-mono transition-colors duration-300">
       {/* CAPA DE FONDO: FORMULARIO */}
-      <div
-        className={`flex items-center justify-center min-h-screen w-full bg-gray-100 dark:bg-black p-4 transition-all duration-300 ${modal.isOpen ? "opacity-60 blur-[2px] pointer-events-none scale-[0.99]" : "opacity-100 blur-0 scale-100"}`}
-      >
-        {/* CORRECCIÓN: dark:bg-[#0a0a0a] */}
+      <div className="flex items-center justify-center min-h-screen w-full bg-gray-100 dark:bg-black p-4 transition-all duration-300">
+        {/* PANEL PRINCIPAL (Fondo #0a0a0a para negro profundo) */}
         <div className="border-2 border-gray-300 dark:border-white p-8 bg-white dark:bg-[#0a0a0a] shadow-2xl dark:shadow-[0_0_30px_rgba(255,255,255,0.1)] w-full max-w-md transition-colors duration-300">
           <h2 className="text-center mb-8 text-xl font-bold tracking-[0.2em] text-gray-900 dark:text-white border-b-2 border-gray-300 dark:border-white pb-4 uppercase">
             [ Registro de Cupos ]
@@ -206,55 +170,6 @@ export const EntregaCupos = ({ onVolver }: { onVolver: () => void }) => {
           </div>
         </div>
       </div>
-
-      {/* CAPA DE MODAL (SUPERPUESTO) */}
-      {modal.isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-transparent backdrop-blur-sm pointer-events-auto transition-all duration-300">
-          {/* CORRECCIÓN: dark:bg-[#0a0a0a] */}
-          <div
-            className={`w-full max-w-sm border-2 p-6 bg-white dark:bg-[#0a0a0a] shadow-[0_0_50px_rgba(0,0,0,0.2)] dark:shadow-[0_0_50px_rgba(0,0,0,0.8)] animate-in zoom-in duration-200 ${
-              modal.type === "ERROR"
-                ? "border-red-600 shadow-red-500/40 dark:shadow-red-900/40"
-                : modal.type === "CONFIRM"
-                  ? "border-yellow-500 dark:border-yellow-600 shadow-yellow-500/40 dark:shadow-yellow-900/40"
-                  : "border-emerald-600 shadow-emerald-500/40 dark:shadow-emerald-900/40"
-            }`}
-          >
-            <h4
-              className={`text-center font-bold mb-4 tracking-widest uppercase text-[10px] ${
-                modal.type === "ERROR"
-                  ? "text-red-600 dark:text-red-500"
-                  : modal.type === "CONFIRM"
-                    ? "text-yellow-600 dark:text-yellow-500"
-                    : "text-emerald-600 dark:text-emerald-500"
-              }`}
-            >
-              {modal.type === "ERROR"
-                ? "[ ! ] ALERTA"
-                : modal.type === "CONFIRM"
-                  ? "[ ? ] CONFIRMAR"
-                  : "[ i ] SISTEMA"}
-            </h4>
-
-            <p className="text-gray-900 dark:text-white text-center text-[11px] mb-6 font-mono uppercase italic leading-tight">
-              {modal.message}
-            </p>
-
-            <div className="flex gap-2">
-              <button
-                onClick={closeModal}
-                className={`w-full py-3 text-[10px] font-bold uppercase transition-all ${
-                  modal.type === "ERROR"
-                    ? "bg-red-100 dark:bg-red-900/40 border border-red-500 dark:border-red-600 text-red-700 dark:text-red-500"
-                    : "bg-emerald-600 text-white dark:text-black hover:bg-emerald-500 dark:hover:bg-emerald-400"
-                }`}
-              >
-                ACEPTAR
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

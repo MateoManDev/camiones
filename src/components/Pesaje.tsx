@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { useLocalStorage } from "../hooks/useLocalStorage";
+// 1. IMPORTAR SONNER
+import { toast } from "sonner";
 
 // --- INTERFACES ---
 interface Operacion {
@@ -24,12 +26,13 @@ interface Producto {
   nombre: string;
 }
 
-// Interfaz para el estado del Modal
+// Interfaz Mejorada para el Modal
 interface ModalState {
   isOpen: boolean;
-  type: "INFO" | "ERROR" | "CONFIRM";
+  type: "CONFIRM" | "WARNING"; // Para cambiar el color (Amarillo/Rojo)
+  title: string; // Título personalizado
   message: string;
-  detalles?: string[]; // Agregado para mostrar la lista de distribución
+  detalles?: string[];
   onConfirm?: () => void;
 }
 
@@ -43,11 +46,13 @@ export const Pesaje = ({ onVolver }: { onVolver: () => void }) => {
 
   const [opActiva, setOpActiva] = useState<Operacion | null>(null);
   const [pesoInput, setPesoInput] = useState<number | "">("");
+  const [editandoBruto, setEditandoBruto] = useState(false);
 
   // --- ESTADO DEL MODAL ---
   const [modal, setModal] = useState<ModalState>({
     isOpen: false,
-    type: "INFO",
+    type: "CONFIRM",
+    title: "",
     message: "",
   });
 
@@ -64,8 +69,9 @@ export const Pesaje = ({ onVolver }: { onVolver: () => void }) => {
     (op) => op.fechacup === hoy && (op.estado === "C" || op.estado === "B"),
   );
 
-  // Función auxiliar para finalizar el guardado (necesaria para el callback del modal)
-  const ejecutarGuardado = (
+  // --- LÓGICAS INTERNAS DE GUARDADO (Para llamarlas desde el Modal) ---
+
+  const aplicarGuardadoFinal = (
     nuevasOps: Operacion[],
     nuevosSilos: Silo[],
     neto: number,
@@ -73,91 +79,129 @@ export const Pesaje = ({ onVolver }: { onVolver: () => void }) => {
     setOperaciones(nuevasOps);
     setSilos(nuevosSilos);
 
-    // Mensaje de éxito final
-    setModal({
-      isOpen: true,
-      type: "INFO",
-      message: `✅ Operación finalizada.\nSe registraron ${neto}kg en el stock general.`,
+    toast.success("PESAJE FINALIZADO CORRECTAMENTE", {
+      description: `Se registraron ${neto} KG netos en el stock.`,
     });
 
     setOpActiva(null);
     setPesoInput("");
   };
 
-  const guardarMovimiento = () => {
+  const aplicarGuardadoBruto = (peso: number) => {
+    if (!opActiva) return;
+    const nuevasOperaciones = operaciones.map((op) =>
+      op.patente === opActiva.patente &&
+      op.fechacup === hoy &&
+      op.estado === "C"
+        ? { ...op, bruto: peso, estado: "B" as const }
+        : op,
+    );
+    setOperaciones(nuevasOperaciones);
+
+    toast.success(`PESO BRUTO REGISTRADO: ${opActiva.patente}`);
+    setOpActiva(null);
+    setPesoInput("");
+    closeModal(); // Cierra el modal si estaba abierto
+  };
+
+  const aplicarCorreccionBruto = (peso: number) => {
+    if (!opActiva) return;
+    const nuevasOperaciones = operaciones.map((op) =>
+      op.patente === opActiva.patente && op.fechacup === hoy
+        ? { ...op, bruto: peso }
+        : op,
+    );
+
+    setOperaciones(nuevasOperaciones);
+    setOpActiva({ ...opActiva, bruto: peso });
+    setEditandoBruto(false);
+    setPesoInput("");
+
+    toast.success("PESO BRUTO CORREGIDO CORRECTAMENTE");
+    closeModal(); // Cierra el modal si estaba abierto
+  };
+
+  // --- MANEJADORES DE BOTONES ---
+
+  const guardarCorreccionBruto = () => {
     if (!opActiva || pesoInput === "" || Number(pesoInput) <= 0) {
+      toast.error("ERROR: INGRESE UN PESO VÁLIDO");
+      return;
+    }
+    const nuevoBruto = Number(pesoInput);
+
+    // Validación de peso desorbitado con MODAL
+    if (nuevoBruto > 60000) {
       setModal({
         isOpen: true,
-        type: "ERROR",
-        message: "❗ Ingrese un peso válido.",
+        type: "WARNING",
+        title: "⚠️ ADVERTENCIA DE SEGURIDAD",
+        message: `El peso ingresado (${nuevoBruto.toLocaleString()} KG) excede las 60 Toneladas.\n\n¿Confirma que este valor es correcto?`,
+        onConfirm: () => aplicarCorreccionBruto(nuevoBruto),
       });
       return;
     }
 
-    const valorPeso = Number(pesoInput);
-    let nuevasOperaciones = [...operaciones];
+    aplicarCorreccionBruto(nuevoBruto);
+  };
 
-    // PASO 1: REGISTRO DE BRUTO
-    if (opActiva.estado === "C") {
-      nuevasOperaciones = operaciones.map((op) =>
-        op.patente === opActiva.patente &&
-        op.fechacup === hoy &&
-        op.estado === "C"
-          ? { ...op, bruto: valorPeso, estado: "B" as const }
-          : op,
-      );
-      setOperaciones(nuevasOperaciones);
-
-      setModal({
-        isOpen: true,
-        type: "INFO",
-        message: `✅ BRUTO de ${opActiva.patente} guardado.`,
-      });
-
-      setOpActiva(null); // Opcional: Si quieres que salga de la pantalla tras pesar bruto
-      setPesoInput("");
+  const guardarMovimiento = () => {
+    if (!opActiva || pesoInput === "" || Number(pesoInput) <= 0) {
+      toast.error("ERROR: INGRESE UN PESO VÁLIDO");
+      return;
     }
 
-    // PASO 2: REGISTRO DE TARA Y DISTRIBUCIÓN INTELIGENTE
-    else if (opActiva.estado === "B") {
-      if (valorPeso >= opActiva.bruto) {
+    const valorPeso = Number(pesoInput);
+
+    // CASO 1: REGISTRO DE BRUTO (Entrada)
+    if (opActiva.estado === "C") {
+      // Validación de peso desorbitado con MODAL
+      if (valorPeso > 60000) {
         setModal({
           isOpen: true,
-          type: "ERROR",
-          message: "❗ La Tara no puede ser mayor o igual al Bruto.",
+          type: "WARNING",
+          title: "⚠️ ALERTA DE PESO EXCESIVO",
+          message: `Está registrando ${valorPeso.toLocaleString()} KG.\nEste valor es inusual para un camión.\n\n¿Desea continuar?`,
+          onConfirm: () => aplicarGuardadoBruto(valorPeso),
+        });
+        return;
+      }
+      aplicarGuardadoBruto(valorPeso);
+    }
+
+    // CASO 2: REGISTRO DE TARA (Salida)
+    else if (opActiva.estado === "B") {
+      if (valorPeso >= opActiva.bruto) {
+        toast.error("ERROR CRÍTICO: TARA MAYOR AL BRUTO", {
+          description:
+            "Revise los valores. Si el Bruto está mal, use el botón 'Editar'.",
         });
         return;
       }
 
       const netoTotal = opActiva.bruto - valorPeso;
 
-      // 1. Identificar todos los silos que aceptan este producto
+      // 1. Identificar silos
       const silosDelProducto = silos.filter(
         (s) => s.codprod === opActiva.codprod,
       );
 
-      // 2. Calcular la capacidad total disponible en la planta para este producto
+      // 2. Calcular capacidad
       const capacidadTotalDisponible = silosDelProducto.reduce(
         (acc, s) => acc + (s.capacidad - s.stock),
         0,
       );
 
-      // 3. Bloqueo si el camión supera el total de la planta
+      // 3. Bloqueo si supera capacidad
       if (netoTotal > capacidadTotalDisponible) {
-        setModal({
-          isOpen: true,
-          type: "ERROR",
-          message: "🚫 BLOQUEO DE CAPACIDAD TOTAL",
-          detalles: [
-            `Neto: ${netoTotal} kg`,
-            `Disponible en planta: ${capacidadTotalDisponible} kg`,
-            `No es posible descargar la unidad.`,
-          ],
+        toast.error("🚫 ALERTA: EXCESO DE CAPACIDAD", {
+          description: `Intenta descargar ${netoTotal} KG pero solo hay espacio para ${capacidadTotalDisponible} KG.`,
+          duration: 8000,
         });
         return;
       }
 
-      // 4. Lógica de Distribución en Cascada
+      // 4. Distribución
       let restoPorCargar = netoTotal;
       let silosAfectados: string[] = [];
 
@@ -183,32 +227,31 @@ export const Pesaje = ({ onVolver }: { onVolver: () => void }) => {
           : op,
       );
 
-      // 5. Informar al operario si hubo división de carga
+      // 5. Confirmación con MODAL (Distribución)
       if (silosAfectados.length > 1) {
         setModal({
           isOpen: true,
           type: "CONFIRM",
-          message: "⚖️ DISTRIBUCIÓN AUTOMÁTICA REQUERIDA",
+          title: "⚖️ DISTRIBUCIÓN AUTOMÁTICA",
+          message:
+            "La carga se dividirá entre varios silos por falta de espacio individual:",
           detalles: silosAfectados,
           onConfirm: () => {
-            ejecutarGuardado(nuevasOps, nuevosSilos, netoTotal);
+            aplicarGuardadoFinal(nuevasOps, nuevosSilos, netoTotal);
             closeModal();
           },
         });
       } else {
-        // Guardado directo si entró todo en un solo silo
-        ejecutarGuardado(nuevasOps, nuevosSilos, netoTotal);
+        aplicarGuardadoFinal(nuevasOps, nuevosSilos, netoTotal);
       }
     }
   };
 
   return (
     <div className="relative min-h-screen bg-gray-100 dark:bg-black font-mono transition-colors duration-300">
-      {/* CAPA DE FONDO: BALANZA */}
       <div
         className={`flex items-center justify-center min-h-screen w-full bg-gray-100 dark:bg-black p-4 transition-all duration-300 ${modal.isOpen ? "opacity-60 blur-[2px] pointer-events-none scale-[0.99]" : "opacity-100 blur-0 scale-100"}`}
       >
-        {/* CORRECCIÓN: dark:bg-[#0a0a0a] */}
         <div className="border-2 border-emerald-500 dark:border-emerald-500 p-8 bg-white dark:bg-[#0a0a0a] shadow-xl dark:shadow-[0_0_20px_rgba(16,185,129,0.2)] w-full max-w-md transition-colors duration-300">
           <h2 className="text-center mb-8 text-xl font-bold tracking-[0.2em] text-emerald-600 dark:text-emerald-500 border-b-2 border-emerald-600 dark:border-emerald-900 pb-4 uppercase italic">
             [ Balanza de Planta ]
@@ -223,7 +266,11 @@ export const Pesaje = ({ onVolver }: { onVolver: () => void }) => {
                 {camionesEnEspera.map((op, idx) => (
                   <button
                     key={`${op.patente}-${idx}`}
-                    onClick={() => setOpActiva(op)}
+                    onClick={() => {
+                      setOpActiva(op);
+                      setEditandoBruto(false);
+                      setPesoInput("");
+                    }}
                     className="flex justify-between items-center p-4 border border-gray-300 dark:border-gray-800 bg-gray-50 dark:bg-black hover:border-emerald-500 dark:hover:border-emerald-500 transition-all text-left group"
                   >
                     <div className="flex flex-col">
@@ -263,21 +310,44 @@ export const Pesaje = ({ onVolver }: { onVolver: () => void }) => {
                     {obtenerNombreProducto(opActiva.codprod)}
                   </span>
                 </div>
+
+                {/* --- SECCIÓN DE BRUTO CON EDICIÓN --- */}
+                {opActiva.estado === "B" && !editandoBruto && (
+                  <div className="mt-2 flex justify-between items-center bg-gray-200 dark:bg-gray-900 p-2 rounded">
+                    <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400">
+                      BRUTO: {opActiva.bruto} KG
+                    </span>
+                    <button
+                      onClick={() => {
+                        setEditandoBruto(true);
+                        setPesoInput(opActiva.bruto);
+                      }}
+                      className="text-[9px] text-blue-600 dark:text-blue-400 underline font-bold hover:text-blue-800"
+                    >
+                      ✏️ CORREGIR
+                    </button>
+                  </div>
+                )}
+
                 <p className="text-[10px] text-emerald-700 dark:text-emerald-700 font-bold uppercase mt-2 italic tracking-tighter">
                   Acción:{" "}
-                  {opActiva.estado === "C"
-                    ? "Registrando Peso de Entrada"
-                    : "Registrando Peso de Salida"}
+                  {editandoBruto
+                    ? "CORRIGIENDO PESO BRUTO"
+                    : opActiva.estado === "C"
+                      ? "Registrando Peso de Entrada"
+                      : "Registrando Peso de Salida (Tara)"}
                 </p>
               </div>
 
               <div className="flex flex-col gap-2 text-center">
                 <label className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">
-                  Peso en Pantalla (KG):
+                  {editandoBruto
+                    ? "NUEVO BRUTO (KG):"
+                    : "PESO EN PANTALLA (KG):"}
                 </label>
                 <input
                   type="number"
-                  className="bg-white dark:bg-black border-2 border-gray-300 dark:border-gray-700 p-4 text-4xl text-center text-emerald-600 dark:text-emerald-400 focus:border-emerald-500 outline-none"
+                  className={`bg-white dark:bg-black border-2 p-4 text-4xl text-center outline-none ${editandoBruto ? "border-blue-500 text-blue-600 dark:text-blue-500" : "border-gray-300 dark:border-gray-700 text-emerald-600 dark:text-emerald-400 focus:border-emerald-500"}`}
                   value={pesoInput}
                   onChange={(e) =>
                     setPesoInput(
@@ -289,23 +359,45 @@ export const Pesaje = ({ onVolver }: { onVolver: () => void }) => {
               </div>
 
               <div className="flex flex-col gap-3">
-                <button
-                  onClick={guardarMovimiento}
-                  className="bg-emerald-600 text-white dark:text-black py-4 font-bold uppercase hover:bg-emerald-500 dark:hover:bg-emerald-400 transition-all shadow-md dark:shadow-[0_0_10px_rgba(16,185,129,0.3)]"
-                >
-                  {opActiva.estado === "C"
-                    ? "[ CONFIRMAR BRUTO ]"
-                    : "[ CONFIRMAR TARA ]"}
-                </button>
-                <button
-                  onClick={() => {
-                    setOpActiva(null);
-                    setPesoInput("");
-                  }}
-                  className="text-gray-500 dark:text-gray-600 text-[10px] uppercase hover:text-black dark:hover:text-white text-center italic"
-                >
-                  &lt; Volver a la lista sin guardar
-                </button>
+                {editandoBruto ? (
+                  <>
+                    <button
+                      onClick={guardarCorreccionBruto}
+                      className="bg-blue-600 text-white dark:text-black py-4 font-bold uppercase hover:bg-blue-500 transition-all shadow-md"
+                    >
+                      [ GUARDAR CORRECCIÓN ]
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditandoBruto(false);
+                        setPesoInput("");
+                      }}
+                      className="text-gray-500 text-[10px] uppercase hover:text-black dark:hover:text-white"
+                    >
+                      CANCELAR EDICIÓN
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={guardarMovimiento}
+                      className="bg-emerald-600 text-white dark:text-black py-4 font-bold uppercase hover:bg-emerald-500 dark:hover:bg-emerald-400 transition-all shadow-md dark:shadow-[0_0_10px_rgba(16,185,129,0.3)]"
+                    >
+                      {opActiva.estado === "C"
+                        ? "[ CONFIRMAR BRUTO ]"
+                        : "[ CONFIRMAR TARA ]"}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setOpActiva(null);
+                        setPesoInput("");
+                      }}
+                      className="text-gray-500 dark:text-gray-600 text-[10px] uppercase hover:text-black dark:hover:text-white text-center italic"
+                    >
+                      &lt; Volver a la lista sin guardar
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -319,40 +411,30 @@ export const Pesaje = ({ onVolver }: { onVolver: () => void }) => {
         </div>
       </div>
 
-      {/* CAPA DE MODAL (SUPERPUESTO) */}
+      {/* --- MODAL MEJORADO (SOPORTA WARNINGS Y CONFIRMACIONES) --- */}
       {modal.isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-transparent backdrop-blur-sm pointer-events-auto transition-all duration-300">
-          {/* CORRECCIÓN: dark:bg-[#0a0a0a] */}
           <div
             className={`w-full max-w-sm border-2 p-6 bg-white dark:bg-[#0a0a0a] shadow-2xl dark:shadow-[0_0_50px_rgba(0,0,0,0.8)] animate-in zoom-in duration-200 ${
-              modal.type === "ERROR"
+              modal.type === "WARNING"
                 ? "border-red-600 shadow-red-500/40 dark:shadow-red-900/40"
-                : modal.type === "CONFIRM"
-                  ? "border-yellow-500 dark:border-yellow-600 shadow-yellow-500/40 dark:shadow-yellow-900/40"
-                  : "border-emerald-600 shadow-emerald-500/40 dark:shadow-emerald-900/40"
+                : "border-yellow-500 dark:border-yellow-600 shadow-yellow-500/40 dark:shadow-yellow-900/40"
             }`}
           >
             <h4
               className={`text-center font-bold mb-4 tracking-widest uppercase text-[10px] ${
-                modal.type === "ERROR"
+                modal.type === "WARNING"
                   ? "text-red-600 dark:text-red-500"
-                  : modal.type === "CONFIRM"
-                    ? "text-yellow-600 dark:text-yellow-500"
-                    : "text-emerald-600 dark:text-emerald-500"
+                  : "text-yellow-600 dark:text-yellow-500"
               }`}
             >
-              {modal.type === "ERROR"
-                ? "[ ! ] ALERTA"
-                : modal.type === "CONFIRM"
-                  ? "[ ? ] CONFIRMAR"
-                  : "[ i ] SISTEMA"}
+              {modal.title || "[ ? ] CONFIRMACIÓN"}
             </h4>
 
-            <p className="text-gray-900 dark:text-white text-center text-[11px] mb-6 font-mono uppercase italic leading-tight">
+            <p className="text-gray-900 dark:text-white text-center text-[11px] mb-6 font-mono uppercase italic leading-tight whitespace-pre-line">
               {modal.message}
             </p>
 
-            {/* LISTA DE DETALLES (EJ: DISTRIBUCIÓN DE CARGA) */}
             {modal.detalles && (
               <div className="mb-6 bg-gray-100 dark:bg-black/50 border border-gray-300 dark:border-gray-800 p-2">
                 {modal.detalles.map((d, i) => (
@@ -367,23 +449,19 @@ export const Pesaje = ({ onVolver }: { onVolver: () => void }) => {
             )}
 
             <div className="flex gap-2">
-              {modal.type === "CONFIRM" && (
-                <button
-                  onClick={closeModal}
-                  className="flex-1 border border-gray-300 dark:border-gray-700 text-gray-500 py-3 text-[10px] uppercase font-bold hover:text-black dark:hover:text-white transition-colors"
-                >
-                  Cancelar
-                </button>
-              )}
+              <button
+                onClick={closeModal}
+                className="flex-1 border border-gray-300 dark:border-gray-700 text-gray-500 py-3 text-[10px] uppercase font-bold hover:text-black dark:hover:text-white transition-colors"
+              >
+                Cancelar
+              </button>
 
               <button
-                onClick={modal.onConfirm || closeModal}
+                onClick={modal.onConfirm}
                 className={`flex-1 py-3 text-[10px] font-bold uppercase transition-all ${
-                  modal.type === "ERROR"
-                    ? "bg-red-100 dark:bg-red-900/40 border border-red-500 dark:border-red-600 text-red-700 dark:text-red-500"
-                    : modal.type === "CONFIRM"
-                      ? "bg-yellow-500 text-white dark:text-black hover:bg-yellow-600 dark:hover:bg-yellow-500"
-                      : "bg-emerald-600 text-white dark:text-black hover:bg-emerald-500 dark:hover:bg-emerald-400"
+                  modal.type === "WARNING"
+                    ? "bg-red-600 text-white dark:text-black hover:bg-red-700 dark:hover:bg-red-500"
+                    : "bg-yellow-500 text-white dark:text-black hover:bg-yellow-600 dark:hover:bg-yellow-500"
                 }`}
               >
                 ACEPTAR

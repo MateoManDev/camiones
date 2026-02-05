@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { useLocalStorage } from "../hooks/useLocalStorage";
+// 1. IMPORTAR SONNER
+import { toast } from "sonner";
 
 // --- INTERFACES ---
 interface Operacion {
@@ -23,14 +25,6 @@ interface Rubro {
   nombre: string;
 }
 
-// Interfaz para el estado del Modal
-interface ModalState {
-  isOpen: boolean;
-  type: "INFO" | "ERROR" | "CONFIRM";
-  message: string;
-  onConfirm?: () => void;
-}
-
 export const RegistrarCalidad = ({ onVolver }: { onVolver: () => void }) => {
   const [operaciones, setOperaciones] = useLocalStorage<Operacion[]>(
     "operaciones_dat",
@@ -46,15 +40,6 @@ export const RegistrarCalidad = ({ onVolver }: { onVolver: () => void }) => {
     [key: string]: string;
   }>({});
   const [showManual, setShowManual] = useState(false);
-
-  // --- ESTADO DEL MODAL ---
-  const [modal, setModal] = useState<ModalState>({
-    isOpen: false,
-    type: "INFO",
-    message: "",
-  });
-
-  const closeModal = () => setModal({ ...modal, isOpen: false });
 
   const hoy = new Date().toISOString().split("T")[0];
 
@@ -78,15 +63,12 @@ export const RegistrarCalidad = ({ onVolver }: { onVolver: () => void }) => {
       (r) => r.codigoprod === operacionActiva.codprod,
     );
 
+    // 1. Validar campos vacíos
     const incompleto = rubrosDelProd.some(
       (r) => valoresCalidad[r.codigorub] === "",
     );
     if (incompleto) {
-      setModal({
-        isOpen: true,
-        type: "ERROR",
-        message: "❗ Error: Debe completar todos los valores.",
-      });
+      toast.error("ERROR: DEBE COMPLETAR TODOS LOS VALORES DEL ANÁLISIS");
       return;
     }
 
@@ -96,6 +78,7 @@ export const RegistrarCalidad = ({ onVolver }: { onVolver: () => void }) => {
       if (valor >= r.valmin && valor <= r.valmax) contRubCorr++;
     });
 
+    // Lógica de aprobación
     const esAceptado =
       contRubCorr === rubrosDelProd.length ||
       (rubrosDelProd.length > 1 && contRubCorr === rubrosDelProd.length - 1);
@@ -110,28 +93,27 @@ export const RegistrarCalidad = ({ onVolver }: { onVolver: () => void }) => {
 
     setOperaciones(nuevasOperaciones);
 
-    // Mostramos el resultado y al confirmar limpiamos el formulario
-    setModal({
-      isOpen: true,
-      type: esAceptado ? "INFO" : "ERROR", // Usamos ERROR visualmente para RECHAZADO
-      message: esAceptado
-        ? "✅ Calidad aprobada. Estado: C - CALADO."
-        : "❌ Calidad insuficiente. Estado: R - RECHAZADO.",
-      onConfirm: () => {
-        setOperacionActiva(null);
-        setValoresCalidad({});
-        closeModal();
-      },
-    });
+    // 2. Feedback con Toasts
+    if (esAceptado) {
+      toast.success(`CALIDAD APROBADA: ${operacionActiva.patente}`, {
+        description: "Unidad liberada para descarga (Estado: C).",
+      });
+    } else {
+      toast.error(`CALIDAD RECHAZADA: ${operacionActiva.patente}`, {
+        description: "Unidad bloqueada por no cumplir estándares (Estado: R).",
+      });
+    }
+
+    // Limpiar formulario inmediatamente
+    setOperacionActiva(null);
+    setValoresCalidad({});
   };
 
   return (
     <div className="relative min-h-screen bg-gray-100 dark:bg-black font-mono transition-colors duration-300">
       {/* CAPA DE FONDO: INTERFAZ DE CALIDAD */}
-      <div
-        className={`flex items-center justify-center min-h-screen w-full bg-gray-100 dark:bg-black p-4 transition-all duration-300 ${modal.isOpen ? "opacity-60 blur-[2px] pointer-events-none scale-[0.99]" : "opacity-100 blur-0 scale-100"}`}
-      >
-        {/* CORRECCIÓN: dark:bg-[#0a0a0a] */}
+      <div className="flex items-center justify-center min-h-screen w-full bg-gray-100 dark:bg-black p-4 transition-all duration-300">
+        {/* PANEL PRINCIPAL (Fondo #0a0a0a para negro profundo) */}
         <div className="border-2 border-violet-600 dark:border-violet-600 p-8 bg-white dark:bg-[#0a0a0a] shadow-xl dark:shadow-[0_0_20px_rgba(139,92,246,0.2)] w-full max-w-md transition-colors duration-300">
           <h2 className="text-center mb-8 text-xl font-bold tracking-[0.2em] text-violet-600 dark:text-violet-500 border-b-2 border-violet-600 dark:border-violet-900 pb-4 uppercase italic">
             [ Registrar Calidad ]
@@ -266,64 +248,6 @@ export const RegistrarCalidad = ({ onVolver }: { onVolver: () => void }) => {
           </button>
         </div>
       </div>
-
-      {/* CAPA DE MODAL CORREGIDA */}
-      {modal.isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm pointer-events-auto transition-all duration-300">
-          {/* CORRECCIÓN: dark:bg-[#0a0a0a] */}
-          <div
-            className={`w-full max-w-sm border-2 p-6 bg-white dark:bg-[#0a0a0a] shadow-2xl dark:shadow-[0_0_50px_rgba(0,0,0,0.8)] animate-in zoom-in duration-200 ${
-              modal.type === "ERROR"
-                ? "border-red-600 shadow-red-500/40 dark:shadow-red-900/40"
-                : modal.type === "CONFIRM"
-                  ? "border-yellow-500 dark:border-yellow-600 shadow-yellow-500/40 dark:shadow-yellow-900/40"
-                  : "border-violet-600 shadow-violet-500/40 dark:shadow-violet-900/40"
-            }`}
-          >
-            <h4
-              className={`text-center font-bold mb-4 tracking-widest uppercase text-[10px] ${
-                modal.type === "ERROR"
-                  ? "text-red-600 dark:text-red-500"
-                  : modal.type === "CONFIRM"
-                    ? "text-yellow-600 dark:text-yellow-500"
-                    : "text-violet-600 dark:text-violet-500"
-              }`}
-            >
-              {modal.type === "ERROR"
-                ? "[ ! ] ALERTA"
-                : modal.type === "CONFIRM"
-                  ? "[ ? ] CONFIRMAR"
-                  : "[ i ] RESULTADO"}
-            </h4>
-
-            <p className="text-gray-900 dark:text-white text-center text-[11px] mb-6 font-mono uppercase italic leading-tight">
-              {modal.message}
-            </p>
-
-            <div className="flex gap-2">
-              {modal.type === "CONFIRM" && (
-                <button
-                  onClick={closeModal}
-                  className="flex-1 border border-gray-300 dark:border-gray-700 text-gray-500 py-3 text-[10px] uppercase font-bold hover:bg-gray-100 dark:hover:text-white transition-colors"
-                >
-                  Cancelar
-                </button>
-              )}
-
-              <button
-                onClick={modal.onConfirm || closeModal}
-                className={`w-full py-3 text-[10px] font-bold uppercase transition-all ${
-                  modal.type === "ERROR"
-                    ? "bg-red-100 dark:bg-red-900/40 border border-red-500 dark:border-red-600 text-red-700 dark:text-red-500"
-                    : "bg-violet-600 text-white dark:text-black hover:bg-violet-500 dark:hover:bg-violet-400"
-                }`}
-              >
-                ACEPTAR
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

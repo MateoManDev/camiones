@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from "react";
+// 1. IMPORTAR SONNER
+import { Toaster } from "sonner";
+
 import { AdminMenu } from "./components/Admin";
 import { EntregaCupos } from "./components/EntregaCupos";
 import { Recepcion } from "./components/Recepcion";
@@ -65,8 +68,19 @@ const App = () => {
   };
 
   return (
-    // Se usa dark:bg-black para un negro puro
     <div className="w-full min-h-screen bg-gray-100 dark:bg-black text-gray-900 dark:text-white transition-colors duration-300 font-mono">
+      {/* CORRECCIÓN: ELIMINAMOS "style" PARA QUE LOS COLORES FUNCIONEN */}
+      <Toaster
+        position="top-center"
+        richColors
+        theme={theme === "dark" ? "dark" : "light"}
+        toastOptions={{
+          className:
+            "font-mono uppercase text-xs md:text-sm font-bold tracking-wide",
+          // AQUÍ NO DEBE HABER 'style: { background: ... }'
+        }}
+      />
+
       {/* BOTÓN FLOTANTE DE TEMA */}
       <button
         onClick={toggleTheme}
