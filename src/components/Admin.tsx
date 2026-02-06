@@ -76,7 +76,6 @@ const rxpSchema = z.object({
 });
 
 // Tipo unificado para el formulario
-// CAMBIO 1: min y max ahora pueden ser undefined para que el input quede vacío
 type AdminFormValues = {
   codigo: string;
   nombre?: string;
@@ -101,17 +100,17 @@ const SeccionAyuda = () => {
     <div className="mt-6 border border-gray-300 dark:border-gray-800 rounded-sm overflow-hidden font-mono">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full bg-gray-200 dark:bg-gray-800/50 p-2 text-[10px] text-cyan-700 dark:text-cyan-500 flex justify-between items-center hover:bg-gray-300 dark:hover:bg-gray-800 transition-colors uppercase font-bold italic"
+        className="w-full bg-gray-200 dark:bg-gray-800/50 p-3 text-[10px] text-cyan-700 dark:text-cyan-500 flex justify-between items-center hover:bg-gray-300 dark:hover:bg-gray-800 transition-colors uppercase font-bold italic"
       >
         <span>{isOpen ? "▼" : "▶"} Manual de Operaciones</span>
       </button>
       {isOpen && (
-        <div className="p-3 bg-gray-100 dark:bg-black/40 text-[9px] text-gray-600 dark:text-gray-400 space-y-4 animate-in fade-in duration-300">
+        <div className="p-4 bg-gray-100 dark:bg-black/40 text-[10px] text-gray-600 dark:text-gray-400 space-y-4 animate-in fade-in duration-300">
           <div>
             <p className="text-yellow-600 font-bold mb-1 underline">
               REGLAS DE NOMBRES:
             </p>
-            <ul className="space-y-1">
+            <ul className="space-y-1 ml-2">
               <li>
                 • <b>Productos/Rubros:</b> Deben ser texto (Ej: SOJA). No se
                 permiten solo números.
@@ -157,7 +156,6 @@ const PanelGestion = ({
     formState: { errors },
   } = useForm<AdminFormValues>({
     resolver: zodResolver(schema) as any,
-    // CAMBIO 1: Inicializamos min/max como undefined para que el input salga vacío (sin el 0 molesto)
     defaultValues: {
       codigo: "",
       nombre: "",
@@ -196,7 +194,6 @@ const PanelGestion = ({
         }
       }
     } else {
-      // Resetear a vacío al terminar edición
       reset({
         codigo: "",
         nombre: "",
@@ -213,231 +210,252 @@ const PanelGestion = ({
 
   return (
     <div className="flex items-center justify-center min-h-screen w-full bg-gray-100 dark:bg-black p-4 font-mono transition-colors duration-300">
-      <div className="border-2 border-cyan-500 p-8 bg-white dark:bg-[#0a0a0a] shadow-xl w-full max-w-md transition-colors duration-300">
-        <h3 className="text-cyan-600 dark:text-cyan-400 font-bold mb-6 text-xl tracking-widest text-center border-b border-gray-300 dark:border-cyan-900 pb-2 uppercase italic">
+      <div className="border-2 border-cyan-500 p-6 bg-white dark:bg-[#0a0a0a] shadow-xl w-full max-w-md transition-colors duration-300 flex flex-col max-h-[95vh]">
+        {/* HEADER FIJO */}
+        <h3 className="text-cyan-600 dark:text-cyan-400 font-bold mb-4 text-xl tracking-widest text-center border-b border-gray-300 dark:border-cyan-900 pb-2 uppercase italic shrink-0">
           {titulo}{" "}
           {editandoId && (
-            <span className="text-yellow-600 dark:text-yellow-500 text-[10px] animate-pulse">
+            <span className="text-yellow-600 dark:text-yellow-500 text-[10px] animate-pulse block sm:inline">
               (EDITANDO)
             </span>
           )}
         </h3>
 
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          className="flex flex-col gap-3 mb-8"
-        >
-          {tipo !== "RXP" && (
-            <>
-              <div className="flex flex-col">
-                <input
-                  {...register("nombre")}
-                  className={`bg-gray-50 dark:bg-black border p-2 text-cyan-700 dark:text-cyan-500 outline-none focus:border-cyan-500 uppercase text-xs placeholder-gray-400 dark:placeholder-gray-600 ${errors.nombre ? "border-red-500" : "border-gray-300 dark:border-gray-700"}`}
-                  placeholder="NOMBRE / DESCRIPCIÓN"
-                  autoComplete="off"
-                  onChange={(e) =>
-                    setValue("nombre", e.target.value.toUpperCase())
-                  }
-                />
-                {errors.nombre && (
-                  <span className="text-[9px] text-red-500">
-                    * {errors.nombre.message}
-                  </span>
-                )}
-              </div>
+        {/* FORMULARIO (SCROLLEABLE SI ES NECESARIO EN MÓVILES MUY CHICOS) */}
+        <div className="overflow-y-auto shrink-0 mb-4 px-1">
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="flex flex-col gap-3"
+          >
+            {tipo !== "RXP" && (
+              <>
+                <div className="flex flex-col">
+                  <input
+                    {...register("nombre")}
+                    className={`bg-gray-50 dark:bg-black border p-3 text-cyan-700 dark:text-cyan-500 outline-none focus:border-cyan-500 uppercase text-xs placeholder-gray-400 dark:placeholder-gray-600 ${errors.nombre ? "border-red-500" : "border-gray-300 dark:border-gray-700"}`}
+                    placeholder="NOMBRE / DESCRIPCIÓN"
+                    autoComplete="off"
+                    onChange={(e) =>
+                      setValue("nombre", e.target.value.toUpperCase())
+                    }
+                  />
+                  {errors.nombre && (
+                    <span className="text-[9px] text-red-500">
+                      * {errors.nombre.message}
+                    </span>
+                  )}
+                </div>
 
-              <div className="flex flex-col">
-                <input
-                  {...register("codigo")}
-                  disabled={!!editandoId}
-                  className={`bg-gray-50 dark:bg-black border p-2 outline-none uppercase text-xs placeholder-gray-400 dark:placeholder-gray-600 ${editandoId ? "text-gray-400 cursor-not-allowed border-gray-200" : "text-cyan-700 dark:text-cyan-500 focus:border-cyan-500"} ${errors.codigo ? "border-red-500" : "border-gray-300 dark:border-gray-700"}`}
-                  placeholder="CÓDIGO (EJ: SOJA, S1)"
-                  autoComplete="off"
-                  onChange={(e) =>
-                    setValue(
-                      "codigo",
-                      e.target.value.toUpperCase().replace(/\s/g, ""),
-                    )
-                  }
-                />
-                {errors.codigo && (
-                  <span className="text-[9px] text-red-500">
-                    * {errors.codigo.message}
-                  </span>
-                )}
-              </div>
-            </>
-          )}
+                <div className="flex flex-col">
+                  <input
+                    {...register("codigo")}
+                    disabled={!!editandoId}
+                    className={`bg-gray-50 dark:bg-black border p-3 outline-none uppercase text-xs placeholder-gray-400 dark:placeholder-gray-600 ${editandoId ? "text-gray-400 cursor-not-allowed border-gray-200" : "text-cyan-700 dark:text-cyan-500 focus:border-cyan-500"} ${errors.codigo ? "border-red-500" : "border-gray-300 dark:border-gray-700"}`}
+                    placeholder="CÓDIGO (EJ: SOJA, S1)"
+                    autoComplete="off"
+                    onChange={(e) =>
+                      setValue(
+                        "codigo",
+                        e.target.value.toUpperCase().replace(/\s/g, ""),
+                      )
+                    }
+                  />
+                  {errors.codigo && (
+                    <span className="text-[9px] text-red-500">
+                      * {errors.codigo.message}
+                    </span>
+                  )}
+                </div>
+              </>
+            )}
 
-          {(tipo === "SILO" || tipo === "RXP") && (
-            <div className="flex flex-col">
-              <select
-                {...register("extra")}
-                className={`bg-gray-50 dark:bg-black border p-2 text-yellow-600 dark:text-yellow-500 text-xs outline-none focus:border-cyan-500 ${errors.extra ? "border-red-500" : "border-gray-300 dark:border-gray-700"}`}
-              >
-                <option value="">-- SELECCIONE PRODUCTO --</option>
-                {productosParaSelect.map((p: Producto) => (
-                  <option key={p.codigo} value={p.codigo}>
-                    {p.nombre}
-                  </option>
-                ))}
-              </select>
-              {errors.extra && (
-                <span className="text-[9px] text-red-500">
-                  * {errors.extra.message}
-                </span>
-              )}
-            </div>
-          )}
-
-          {tipo === "SILO" && (
-            <div className="flex flex-col">
-              <input
-                type="number"
-                {...register("min")}
-                className="bg-gray-50 dark:bg-black border border-gray-300 dark:border-gray-700 p-2 text-cyan-700 dark:text-cyan-500 outline-none focus:border-cyan-500 text-xs placeholder-gray-400 dark:placeholder-gray-600"
-                placeholder="CAPACIDAD MÁXIMA (KG)"
-              />
-              {errors.min && (
-                <span className="text-[9px] text-red-500">
-                  * {errors.min.message}
-                </span>
-              )}
-            </div>
-          )}
-
-          {tipo === "RXP" && (
-            <>
+            {(tipo === "SILO" || tipo === "RXP") && (
               <div className="flex flex-col">
                 <select
-                  {...register("codigo")}
-                  disabled={!!editandoId}
-                  className="bg-gray-50 dark:bg-black border border-gray-300 dark:border-gray-700 p-2 text-cyan-700 dark:text-cyan-500 text-xs outline-none focus:border-cyan-500"
+                  {...register("extra")}
+                  className={`bg-gray-50 dark:bg-black border p-3 text-yellow-600 dark:text-yellow-500 text-xs outline-none focus:border-cyan-500 ${errors.extra ? "border-red-500" : "border-gray-300 dark:border-gray-700"}`}
                 >
-                  <option value="">-- SELECCIONE RUBRO --</option>
-                  {rubrosParaSelect.map((r: Rubro) => (
-                    <option key={r.codigo} value={r.codigo}>
-                      {r.nombre}
+                  <option value="">-- SELECCIONE PRODUCTO --</option>
+                  {productosParaSelect.map((p: Producto) => (
+                    <option key={p.codigo} value={p.codigo}>
+                      {p.nombre}
                     </option>
                   ))}
                 </select>
-                {errors.codigo && (
+                {errors.extra && (
                   <span className="text-[9px] text-red-500">
-                    * {errors.codigo.message}
+                    * {errors.extra.message}
                   </span>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-2">
+            )}
+
+            {tipo === "SILO" && (
+              <div className="flex flex-col">
                 <input
                   type="number"
                   {...register("min")}
-                  className="bg-gray-50 dark:bg-black border border-gray-300 dark:border-gray-700 p-2 text-xs outline-none"
-                  placeholder="MIN"
+                  className="bg-gray-50 dark:bg-black border border-gray-300 dark:border-gray-700 p-3 text-cyan-700 dark:text-cyan-500 outline-none focus:border-cyan-500 text-xs placeholder-gray-400 dark:placeholder-gray-600"
+                  placeholder="CAPACIDAD MÁXIMA (KG)"
                 />
-                <input
-                  type="number"
-                  {...register("max")}
-                  className="bg-gray-50 dark:bg-black border border-gray-300 dark:border-gray-700 p-2 text-xs outline-none"
-                  placeholder="MAX"
-                />
+                {errors.min && (
+                  <span className="text-[9px] text-red-500">
+                    * {errors.min.message}
+                  </span>
+                )}
               </div>
-            </>
-          )}
+            )}
 
-          <button
-            type="submit"
-            className={`mt-2 border py-2 transition-all font-bold uppercase text-xs ${editandoId ? "border-yellow-500 text-yellow-600 dark:text-yellow-500 hover:bg-yellow-500 hover:text-white dark:hover:text-black" : "border-cyan-500 text-cyan-600 dark:text-cyan-500 hover:bg-cyan-500 hover:text-white dark:hover:text-black"}`}
-          >
-            {editandoId ? "[ GUARDAR CAMBIOS ]" : "[ + AÑADIR REGISTRO ]"}
-          </button>
+            {tipo === "RXP" && (
+              <>
+                <div className="flex flex-col">
+                  <select
+                    {...register("codigo")}
+                    disabled={!!editandoId}
+                    className="bg-gray-50 dark:bg-black border border-gray-300 dark:border-gray-700 p-3 text-cyan-700 dark:text-cyan-500 text-xs outline-none focus:border-cyan-500"
+                  >
+                    <option value="">-- SELECCIONE RUBRO --</option>
+                    {rubrosParaSelect.map((r: Rubro) => (
+                      <option key={r.codigo} value={r.codigo}>
+                        {r.nombre}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.codigo && (
+                    <span className="text-[9px] text-red-500">
+                      * {errors.codigo.message}
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="number"
+                    {...register("min")}
+                    className="bg-gray-50 dark:bg-black border border-gray-300 dark:border-gray-700 p-3 text-xs outline-none"
+                    placeholder="MIN"
+                  />
+                  <input
+                    type="number"
+                    {...register("max")}
+                    className="bg-gray-50 dark:bg-black border border-gray-300 dark:border-gray-700 p-3 text-xs outline-none"
+                    placeholder="MAX"
+                  />
+                </div>
+              </>
+            )}
 
-          {editandoId && (
             <button
-              type="button"
-              onClick={() => setEditandoId(null)}
-              className="text-[10px] text-gray-500 dark:text-gray-600 hover:text-red-500 dark:hover:text-white uppercase tracking-tighter"
+              type="submit"
+              className={`mt-2 border py-3 transition-all font-bold uppercase text-xs shadow-sm ${editandoId ? "border-yellow-500 text-yellow-600 dark:text-yellow-500 hover:bg-yellow-500 hover:text-white dark:hover:text-black" : "border-cyan-500 text-cyan-600 dark:text-cyan-500 hover:bg-cyan-500 hover:text-white dark:hover:text-black"}`}
             >
-              ✕ CANCELAR EDICIÓN
+              {editandoId ? "[ GUARDAR CAMBIOS ]" : "[ + AÑADIR REGISTRO ]"}
             </button>
-          )}
-        </form>
 
-        <div className="space-y-1 max-h-40 overflow-y-auto border-t border-gray-300 dark:border-gray-800 pt-4 mb-2 scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-700">
-          {lista.map((item: any, idx: number) => {
-            const idUnico =
-              tipo === "RXP"
-                ? `${item.codigoprod}-${item.codigorub}`
-                : item[keyId];
-
-            // CAMBIO 2: Lógica para mostrar NOMBRES en vez de CÓDIGOS en RxP
-            let textoPrincipal;
-            if (tipo === "RXP") {
-              const prodName =
-                productosParaSelect.find(
-                  (p: any) => p.codigo === item.codigoprod,
-                )?.nombre || item.codigoprod;
-              const rubName =
-                rubrosParaSelect.find((r: any) => r.codigo === item.codigorub)
-                  ?.nombre || item.codigorub;
-              textoPrincipal = `${prodName} ➔ ${rubName}`;
-            } else {
-              textoPrincipal = item[keyNombre];
-            }
-
-            const textoSecundario =
-              tipo === "RXP"
-                ? `MIN: ${item.valmin} | MAX: ${item.valmax}`
-                : tipo === "SILO"
-                  ? `CAP: ${item.capacidad} KG | PROD: ${item.codprod}`
-                  : `ID: ${item[keyId]}`;
-
-            return (
-              <div
-                key={idx}
-                className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-800 group hover:bg-gray-100 dark:hover:bg-white/5 px-1"
+            {editandoId && (
+              <button
+                type="button"
+                onClick={() => setEditandoId(null)}
+                className="text-[10px] text-gray-500 dark:text-gray-600 hover:text-red-500 dark:hover:text-white uppercase tracking-tighter"
               >
-                <div className="flex flex-col text-[10px]">
-                  <span className="text-gray-900 dark:text-white uppercase">
-                    {textoPrincipal}
-                  </span>
-                  <span className="text-cyan-700 dark:text-cyan-500 font-bold">
-                    {textoSecundario}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setEditandoId(idUnico)}
-                    className="text-gray-500 dark:text-gray-600 hover:text-yellow-500 p-1 text-xs transition-colors"
-                  >
-                    ✎
-                  </button>
-                  <button
-                    onClick={() => onDelete(idUnico)}
-                    className="text-red-700 dark:text-red-900 hover:text-red-500 font-bold p-1 text-xs"
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+                ✕ CANCELAR EDICIÓN
+              </button>
+            )}
+          </form>
         </div>
 
-        <SeccionAyuda />
+        {/* --- LISTADO TIPO CARDS --- */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar border-t border-gray-300 dark:border-gray-800 pt-4">
+          <div className="flex flex-col gap-2">
+            {" "}
+            {/* Contenedor de cards */}
+            {lista.length === 0 ? (
+              <p className="text-center text-gray-400 text-xs italic py-4">
+                No hay registros aún.
+              </p>
+            ) : (
+              lista.map((item: any, idx: number) => {
+                const idUnico =
+                  tipo === "RXP"
+                    ? `${item.codigoprod}-${item.codigorub}`
+                    : item[keyId];
 
-        <div className="mt-6 border-t border-gray-300 dark:border-gray-800 pt-4">
-          <button
-            onClick={() => setSubVista("PRINCIPAL")}
-            className="w-full text-cyan-700 dark:text-cyan-500 text-[10px] uppercase text-center py-1 hover:text-cyan-900 dark:hover:text-cyan-400"
-          >
-            ▲ VOLVER A ADMINISTRACIÓN
-          </button>
-          <button
-            onClick={onVolver}
-            className="w-full text-red-700 dark:text-red-700 text-[10px] font-bold text-center mt-2 uppercase hover:text-red-500"
-          >
-            &lt;&lt; Volver al Menú Principal
-          </button>
+                // Lógica Nombres RxP
+                let textoPrincipal;
+                if (tipo === "RXP") {
+                  const prodName =
+                    productosParaSelect.find(
+                      (p: any) => p.codigo === item.codigoprod,
+                    )?.nombre || item.codigoprod;
+                  const rubName =
+                    rubrosParaSelect.find(
+                      (r: any) => r.codigo === item.codigorub,
+                    )?.nombre || item.codigorub;
+                  textoPrincipal = `${prodName} ➔ ${rubName}`;
+                } else {
+                  textoPrincipal = item[keyNombre];
+                }
+
+                const textoSecundario =
+                  tipo === "RXP"
+                    ? `MIN: ${item.valmin} | MAX: ${item.valmax}`
+                    : tipo === "SILO"
+                      ? `CAP: ${item.capacidad} KG | PROD: ${item.codprod}`
+                      : `ID: ${item[keyId]}`;
+
+                return (
+                  // CARD ITEM
+                  <div
+                    key={idx}
+                    className="flex justify-between items-center p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-800 rounded shadow-sm hover:border-cyan-500 dark:hover:border-cyan-700 transition-all"
+                  >
+                    <div className="flex flex-col">
+                      <span className="text-gray-900 dark:text-white font-bold text-xs uppercase">
+                        {textoPrincipal}
+                      </span>
+                      <span className="text-cyan-700 dark:text-cyan-500 text-[10px] font-mono mt-1">
+                        {textoSecundario}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 pl-2 border-l border-gray-300 dark:border-gray-700 ml-2">
+                      <button
+                        onClick={() => setEditandoId(idUnico)}
+                        className="text-gray-500 dark:text-gray-400 hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors"
+                        title="Editar"
+                      >
+                        ✎
+                      </button>
+                      <button
+                        onClick={() => onDelete(idUnico)}
+                        className="text-red-400 hover:text-red-600 dark:hover:text-red-400 transition-colors font-bold"
+                        title="Eliminar"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        <div className="mt-4 pt-2 shrink-0">
+          <SeccionAyuda />
+
+          <div className="flex flex-col gap-2 mt-4">
+            <button
+              onClick={() => setSubVista("PRINCIPAL")}
+              className="w-full bg-gray-100 dark:bg-gray-800 text-cyan-700 dark:text-cyan-500 text-[10px] uppercase py-2 font-bold hover:bg-cyan-100 dark:hover:bg-cyan-900/30 transition-colors rounded"
+            >
+              ▲ Volver a Menú Admin
+            </button>
+            <button
+              onClick={onVolver}
+              className="w-full text-red-700 dark:text-red-600 text-[10px] font-bold text-center uppercase hover:text-red-500 py-1"
+            >
+              &lt;&lt; Volver al Menú Principal
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -572,7 +590,7 @@ export const AdminMenu = ({ onVolver }: { onVolver: () => void }) => {
   if (subVista === "PRINCIPAL") {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 dark:bg-black gap-4 font-mono transition-colors duration-300">
-        <div className="border-2 border-gray-300 dark:border-white p-10 bg-white dark:bg-[#0a0a0a] flex flex-col gap-3 shadow-lg dark:shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+        <div className="border-2 border-gray-300 dark:border-white p-10 bg-white dark:bg-[#0a0a0a] flex flex-col gap-3 shadow-lg dark:shadow-[0_0_15px_rgba(255,255,255,0.1)] w-full max-w-md">
           <h2 className="text-gray-900 dark:text-white text-center mb-6 tracking-widest font-bold border-b border-gray-300 dark:border-white pb-2 uppercase italic">
             Admin Panel
           </h2>
@@ -580,14 +598,14 @@ export const AdminMenu = ({ onVolver }: { onVolver: () => void }) => {
             <button
               key={v}
               onClick={() => setSubVista(v as SubVista)}
-              className="border border-cyan-500 p-3 w-64 text-cyan-600 dark:text-cyan-500 hover:bg-cyan-500 hover:text-white dark:hover:text-black uppercase font-bold text-sm transition-all"
+              className="border border-cyan-500 p-4 w-full text-cyan-600 dark:text-cyan-500 hover:bg-cyan-500 hover:text-white dark:hover:text-black uppercase font-bold text-sm transition-all rounded shadow-sm"
             >
               {v.replace("RXP", "Rubros x Producto")}
             </button>
           ))}
           <button
             onClick={onVolver}
-            className="border border-red-500 p-3 w-64 text-red-600 dark:text-red-500 dark:hover:text-black hover:bg-red-500 hover:text-white uppercase font-bold text-sm mt-4 italic transition-all"
+            className="border border-red-500 p-4 w-full text-red-600 dark:text-red-500 dark:hover:text-black hover:bg-red-500 hover:text-white uppercase font-bold text-sm mt-4 italic transition-all rounded shadow-sm"
           >
             Regresar
           </button>
