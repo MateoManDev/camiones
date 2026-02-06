@@ -14,9 +14,10 @@ interface Silo {
 
 interface DashboardProps {
   alSeleccionar: (vista: string) => void;
+  onLogout: () => void;
 }
 
-export const MenuDashboard = ({ alSeleccionar }: DashboardProps) => {
+export const MenuDashboard = ({ alSeleccionar, onLogout }: DashboardProps) => {
   const [operaciones] = useLocalStorage<Operacion[]>("operaciones_dat", []);
   const [silos] = useLocalStorage<Silo[]>("silos_dat", []);
 
@@ -40,12 +41,12 @@ export const MenuDashboard = ({ alSeleccionar }: DashboardProps) => {
 
   // Clase base común para las tarjetas
   const cardBaseClass =
-    "group relative p-6 border bg-white dark:bg-[#0a0a0a] border-gray-300 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-[#111] transition-all duration-300 text-left shadow-sm dark:shadow-lg";
+    "group relative p-6 border bg-white dark:bg-[#0a0a0a] border-gray-300 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-[#111] transition-all duration-300 text-left shadow-sm dark:shadow-lg flex flex-col justify-center h-32";
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-black p-8 font-mono flex flex-col items-center justify-center transition-colors duration-300">
       {/* HEADER */}
-      <div className="w-full max-w-5xl mb-8 border-b-2 border-gray-300 dark:border-white/20 pb-4 flex justify-between items-end animate-in slide-in-from-top-4 duration-700">
+      <div className="w-full max-w-6xl mb-6 border-b-2 border-gray-300 dark:border-white/20 pb-4 flex justify-between items-end animate-in slide-in-from-top-4 duration-700">
         <div>
           <h1 className="text-3xl md:text-4xl font-bold tracking-[0.2em] uppercase italic text-transparent bg-clip-text bg-gradient-to-r from-gray-800 to-gray-500 dark:from-white dark:to-gray-500">
             Sistema Logístico
@@ -64,9 +65,9 @@ export const MenuDashboard = ({ alSeleccionar }: DashboardProps) => {
         </div>
       </div>
 
-      {/* GRID DE BOTONES */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 w-full max-w-5xl">
-        {/* 1. ADMINISTRACIÓN (Cyan) */}
+      {/* GRID DE BOTONES - AHORA 4 COLUMNAS PARA QUE ENTREN LOS 8 MÓDULOS EN 2 FILAS */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-6xl">
+        {/* 1. ADMINISTRACIÓN */}
         <button
           onClick={() => alSeleccionar("ADMIN")}
           className={`${cardBaseClass} hover:border-cyan-600 dark:hover:border-cyan-500 hover:shadow-cyan-500/20`}
@@ -79,7 +80,7 @@ export const MenuDashboard = ({ alSeleccionar }: DashboardProps) => {
           </p>
         </button>
 
-        {/* 2. CUPOS (Gris/Blanco) */}
+        {/* 2. CUPOS */}
         <button
           onClick={() => alSeleccionar("CUPOS")}
           className={`${cardBaseClass} hover:border-gray-900 dark:hover:border-white`}
@@ -89,7 +90,7 @@ export const MenuDashboard = ({ alSeleccionar }: DashboardProps) => {
               CUPOS
             </h3>
             <span className="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 text-[10px] font-bold px-2 py-0.5 rounded-sm">
-              TOTAL HOY: {cuposHoy}
+              HOY: {cuposHoy}
             </span>
           </div>
           <p className="text-gray-500 text-[10px] uppercase">
@@ -97,7 +98,7 @@ export const MenuDashboard = ({ alSeleccionar }: DashboardProps) => {
           </p>
         </button>
 
-        {/* 3. RECEPCIÓN (Amarillo) */}
+        {/* 3. RECEPCIÓN */}
         <button
           onClick={() => alSeleccionar("RECEPCION")}
           className={`${cardBaseClass} hover:border-yellow-600 dark:hover:border-yellow-500 hover:shadow-yellow-500/20`}
@@ -108,20 +109,16 @@ export const MenuDashboard = ({ alSeleccionar }: DashboardProps) => {
             </h3>
             {enPuerta > 0 ? (
               <span className="bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-500 border border-yellow-500 text-[10px] font-bold px-2 py-0.5 rounded-sm animate-pulse">
-                EN PUERTA: {enPuerta}
+                PUERTA: {enPuerta}
               </span>
-            ) : (
-              <span className="text-gray-400 dark:text-gray-600 text-[10px] font-bold">
-                SIN PENDIENTES
-              </span>
-            )}
+            ) : null}
           </div>
           <p className="text-gray-500 text-[10px] uppercase">
             Ingreso de Unidades
           </p>
         </button>
 
-        {/* 4. CALIDAD (Violeta) */}
+        {/* 4. CALIDAD */}
         <button
           onClick={() => alSeleccionar("CALIDAD")}
           className={`${cardBaseClass} hover:border-violet-600 dark:hover:border-violet-500 hover:shadow-violet-500/20`}
@@ -132,7 +129,7 @@ export const MenuDashboard = ({ alSeleccionar }: DashboardProps) => {
             </h3>
             {paraCalidad > 0 && (
               <span className="bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-400 border border-violet-500 text-[10px] font-bold px-2 py-0.5 rounded-sm animate-pulse">
-                A CALAR: {paraCalidad}
+                PEND: {paraCalidad}
               </span>
             )}
           </div>
@@ -141,7 +138,7 @@ export const MenuDashboard = ({ alSeleccionar }: DashboardProps) => {
           </p>
         </button>
 
-        {/* 5. BALANZA (Esmeralda) */}
+        {/* 5. BALANZA */}
         <button
           onClick={() => alSeleccionar("PESAJE")}
           className={`${cardBaseClass} hover:border-emerald-600 dark:hover:border-emerald-500 hover:shadow-emerald-500/20`}
@@ -152,14 +149,14 @@ export const MenuDashboard = ({ alSeleccionar }: DashboardProps) => {
             </h3>
             {paraBalanza > 0 && (
               <span className="bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-500 border border-emerald-500 text-[10px] font-bold px-2 py-0.5 rounded-sm animate-pulse">
-                EN COLA: {paraBalanza}
+                COLA: {paraBalanza}
               </span>
             )}
           </div>
           <p className="text-gray-500 text-[10px] uppercase">Control de Peso</p>
         </button>
 
-        {/* 6. GESTIÓN FLOTA (Azul - NUEVO) */}
+        {/* 6. GESTIÓN FLOTA */}
         <button
           onClick={() => alSeleccionar("FLOTA")}
           className={`${cardBaseClass} hover:border-blue-600 dark:hover:border-blue-500 hover:shadow-blue-500/20`}
@@ -168,7 +165,7 @@ export const MenuDashboard = ({ alSeleccionar }: DashboardProps) => {
             <h3 className="text-blue-600 dark:text-blue-500 font-bold text-lg group-hover:translate-x-1 transition-transform tracking-wider">
               FLOTA & GPS
             </h3>
-            <span className="text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 rounded border border-blue-200 dark:border-blue-900">
+            <span className="text-[9px] bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-1 rounded border border-blue-200 dark:border-blue-900">
               MANTENIMIENTO
             </span>
           </div>
@@ -177,52 +174,46 @@ export const MenuDashboard = ({ alSeleccionar }: DashboardProps) => {
           </p>
         </button>
 
-        {/* 7. MONITOR Y REPORTES (DIVIDIDO) */}
-        <div className="grid grid-rows-2 gap-4">
-          {/* SILOS (Naranja) */}
-          <button
-            onClick={() => alSeleccionar("SILOS_RECHAZOS")}
-            className={`group px-6 py-3 border bg-white dark:bg-[#0a0a0a] transition-all duration-300 text-left flex justify-between items-center shadow-sm dark:shadow-lg hover:bg-gray-50 dark:hover:bg-[#111] ${
-              silosCriticos > 0
-                ? "border-red-600 animate-pulse bg-red-100 dark:bg-red-900/10"
-                : "border-gray-300 dark:border-gray-800 hover:border-orange-600 dark:hover:border-orange-500 hover:shadow-orange-500/20"
-            }`}
-          >
-            <div>
-              <h3 className="text-orange-600 dark:text-orange-500 font-bold text-sm tracking-wider group-hover:translate-x-1 transition-transform">
-                MONITOR SILOS
-              </h3>
-              {silosCriticos > 0 ? (
-                <span className="text-[9px] text-red-600 dark:text-red-500 font-bold uppercase">
-                  ⚠ {silosCriticos} SILO(S) CRÍTICO(S)
-                </span>
-              ) : (
-                <span className="text-[9px] text-gray-500 uppercase font-bold">
-                  ESTADO NORMAL
-                </span>
-              )}
-            </div>
-          </button>
-
-          {/* REPORTES (Rojo) */}
-          <button
-            onClick={() => alSeleccionar("REPORTES")}
-            className="group px-6 py-3 border border-gray-300 dark:border-gray-800 bg-white dark:bg-[#0a0a0a] hover:bg-gray-50 dark:hover:bg-[#111] hover:border-red-600 dark:hover:border-red-500 hover:shadow-red-500/20 transition-all duration-300 text-left flex justify-between items-center shadow-sm dark:shadow-lg"
-          >
-            <div>
-              <h3 className="text-red-600 dark:text-red-500 font-bold text-sm tracking-wider group-hover:translate-x-1 transition-transform">
-                REPORTES
-              </h3>
-              <span className="text-[9px] text-gray-500 uppercase">
-                Estadísticas y KPI
+        {/* 7. MONITOR SILOS (AHORA INDEPENDIENTE) */}
+        <button
+          onClick={() => alSeleccionar("SILOS_RECHAZOS")}
+          className={`${cardBaseClass} ${
+            silosCriticos > 0
+              ? "border-red-600 animate-pulse bg-red-50 dark:bg-red-900/10"
+              : "hover:border-orange-600 dark:hover:border-orange-500 hover:shadow-orange-500/20"
+          }`}
+        >
+          <div className="flex justify-between items-start mb-1">
+            <h3 className="text-orange-600 dark:text-orange-500 font-bold text-lg group-hover:translate-x-1 transition-transform tracking-wider">
+              MONITOR SILOS
+            </h3>
+            {silosCriticos > 0 && (
+              <span className="text-[9px] text-red-600 dark:text-red-500 font-bold uppercase border border-red-500 px-1 rounded">
+                ⚠ ALERTA
               </span>
-            </div>
-          </button>
-        </div>
+            )}
+          </div>
+          <p className="text-gray-500 text-[10px] uppercase">
+            Gestión de Stock
+          </p>
+        </button>
+
+        {/* 8. REPORTES (AHORA INDEPENDIENTE) */}
+        <button
+          onClick={() => alSeleccionar("REPORTES")}
+          className={`${cardBaseClass} hover:border-red-600 dark:hover:border-red-500 hover:shadow-red-500/20`}
+        >
+          <h3 className="text-red-600 dark:text-red-500 font-bold text-lg mb-1 group-hover:translate-x-1 transition-transform tracking-wider">
+            REPORTES
+          </h3>
+          <p className="text-gray-500 text-[10px] uppercase">
+            Estadísticas y KPI
+          </p>
+        </button>
       </div>
 
-      {/* FOOTER */}
-      <div className="mt-12 w-full max-w-5xl flex justify-between items-center border-t border-gray-300 dark:border-gray-800 pt-6">
+      {/* FOOTER CON BOTÓN DE SALIDA */}
+      <div className="mt-8 w-full max-w-6xl flex justify-between items-center border-t border-gray-300 dark:border-gray-800 pt-6">
         <div className="text-[10px] text-gray-600">
           SISTEMA OPERATIVO V3.0 •{" "}
           <span className="text-emerald-600 dark:text-emerald-500 font-bold">
@@ -230,12 +221,10 @@ export const MenuDashboard = ({ alSeleccionar }: DashboardProps) => {
           </span>
         </div>
         <button
-          onClick={() =>
-            window.confirm("¿Cerrar sesión del sistema?") && window.close()
-          }
-          className="text-[10px] font-bold text-red-700 dark:text-red-900 hover:text-red-500 transition-colors uppercase tracking-widest"
+          onClick={onLogout}
+          className="text-[10px] font-bold text-red-700 dark:text-red-500 hover:text-white hover:bg-red-600 border border-transparent hover:border-red-600 px-4 py-2 transition-all uppercase tracking-widest rounded-sm"
         >
-          [ CERRAR SESIÓN ]
+          [ SALIR AL INICIO ]
         </button>
       </div>
     </div>

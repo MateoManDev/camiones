@@ -32,23 +32,18 @@ interface RubroXProducto {
 }
 
 // --- REGLAS DE VALIDACIÓN ---
-
-// 1. Regla para CÓDIGOS (IDs): Solo letras y números, sin espacios.
 const codigoRule = z
   .string()
   .min(2, "Mínimo 2 caracteres")
   .max(10, "Máximo 10 caracteres")
   .regex(/^[A-Z0-9]+$/, "SOLO LETRAS Y NÚMEROS (SIN ESPACIOS)");
 
-// 2. Regla para NOMBRES (Productos/Rubros): NO pueden ser solo números.
 const nombreTextoRule = z
   .string()
   .min(3, "Mínimo 3 letras")
   .regex(/^(?!\d+$).+$/, "El nombre no puede ser solo números");
 
 // --- ESQUEMAS ZOD ---
-
-// 1. Esquema Básico
 const baseSchema = z.object({
   codigo: codigoRule,
   nombre: nombreTextoRule,
@@ -57,7 +52,6 @@ const baseSchema = z.object({
   max: z.coerce.number().optional(),
 });
 
-// 2. Esquema Silos
 const siloSchema = z.object({
   codigo: codigoRule,
   nombre: z.string().min(1, "Nombre obligatorio"),
@@ -66,7 +60,6 @@ const siloSchema = z.object({
   max: z.coerce.number().optional(),
 });
 
-// 3. Esquema RxP
 const rxpSchema = z.object({
   extra: z.string().min(1, "Producto requerido"),
   codigo: z.string().min(1, "Rubro requerido"),
@@ -75,7 +68,6 @@ const rxpSchema = z.object({
   nombre: z.string().optional(),
 });
 
-// Tipo unificado para el formulario
 type AdminFormValues = {
   codigo: string;
   nombre?: string;
@@ -93,7 +85,7 @@ interface ModalState {
 
 type SubVista = "PRINCIPAL" | "PRODUCTOS" | "RUBROS" | "SILOS" | "RXP";
 
-// --- 1. COMPONENTE DE AYUDA ---
+// --- COMPONENTE DE AYUDA ---
 const SeccionAyuda = () => {
   const [isOpen, setIsOpen] = useState(false);
   return (
@@ -112,11 +104,10 @@ const SeccionAyuda = () => {
             </p>
             <ul className="space-y-1 ml-2">
               <li>
-                • <b>Productos/Rubros:</b> Deben ser texto (Ej: SOJA). No se
-                permiten solo números.
+                • <b>Productos/Rubros:</b> Deben ser texto.
               </li>
               <li>
-                • <b>Silos:</b> Pueden ser números (Ej: 1, 2) o texto.
+                • <b>Silos:</b> Pueden ser números.
               </li>
               <li>
                 • <b>Códigos:</b> Sin espacios, solo letras y números.
@@ -129,7 +120,7 @@ const SeccionAyuda = () => {
   );
 };
 
-// --- 2. PANEL DE GESTIÓN ---
+// --- PANEL DE GESTIÓN ---
 const PanelGestion = ({
   titulo,
   tipo,
@@ -140,7 +131,6 @@ const PanelGestion = ({
   onDelete,
   productosParaSelect = [],
   rubrosParaSelect = [],
-  setSubVista,
   onVolver,
   keyId,
   keyNombre,
@@ -165,7 +155,6 @@ const PanelGestion = ({
     },
   });
 
-  // Efecto para cargar datos al editar
   useEffect(() => {
     if (editandoId) {
       const item = lista.find((i: any) => {
@@ -211,7 +200,6 @@ const PanelGestion = ({
   return (
     <div className="flex items-center justify-center min-h-screen w-full bg-gray-100 dark:bg-black p-4 font-mono transition-colors duration-300">
       <div className="border-2 border-cyan-500 p-6 bg-white dark:bg-[#0a0a0a] shadow-xl w-full max-w-md transition-colors duration-300 flex flex-col max-h-[95vh]">
-        {/* HEADER FIJO */}
         <h3 className="text-cyan-600 dark:text-cyan-400 font-bold mb-4 text-xl tracking-widest text-center border-b border-gray-300 dark:border-cyan-900 pb-2 uppercase italic shrink-0">
           {titulo}{" "}
           {editandoId && (
@@ -221,7 +209,6 @@ const PanelGestion = ({
           )}
         </h3>
 
-        {/* FORMULARIO (SCROLLEABLE SI ES NECESARIO EN MÓVILES MUY CHICOS) */}
         <div className="overflow-y-auto shrink-0 mb-4 px-1">
           <form
             onSubmit={handleSubmit(onSubmit)}
@@ -363,11 +350,9 @@ const PanelGestion = ({
           </form>
         </div>
 
-        {/* --- LISTADO TIPO CARDS --- */}
+        {/* LISTADO */}
         <div className="flex-1 overflow-y-auto custom-scrollbar border-t border-gray-300 dark:border-gray-800 pt-4">
           <div className="flex flex-col gap-2">
-            {" "}
-            {/* Contenedor de cards */}
             {lista.length === 0 ? (
               <p className="text-center text-gray-400 text-xs italic py-4">
                 No hay registros aún.
@@ -379,7 +364,6 @@ const PanelGestion = ({
                     ? `${item.codigoprod}-${item.codigorub}`
                     : item[keyId];
 
-                // Lógica Nombres RxP
                 let textoPrincipal;
                 if (tipo === "RXP") {
                   const prodName =
@@ -403,7 +387,6 @@ const PanelGestion = ({
                       : `ID: ${item[keyId]}`;
 
                 return (
-                  // CARD ITEM
                   <div
                     key={idx}
                     className="flex justify-between items-center p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-800 rounded shadow-sm hover:border-cyan-500 dark:hover:border-cyan-700 transition-all"
@@ -441,19 +424,12 @@ const PanelGestion = ({
 
         <div className="mt-4 pt-2 shrink-0">
           <SeccionAyuda />
-
-          <div className="flex flex-col gap-2 mt-4">
-            <button
-              onClick={() => setSubVista("PRINCIPAL")}
-              className="w-full bg-gray-100 dark:bg-gray-800 text-cyan-700 dark:text-cyan-500 text-[10px] uppercase py-2 font-bold hover:bg-cyan-100 dark:hover:bg-cyan-900/30 transition-colors rounded"
-            >
-              ▲ Volver a Menú Admin
-            </button>
+          <div className="mt-4">
             <button
               onClick={onVolver}
-              className="w-full text-red-700 dark:text-red-600 text-[10px] font-bold text-center uppercase hover:text-red-500 py-1"
+              className="w-full text-red-700 dark:text-red-600 text-[10px] font-bold text-center uppercase hover:text-red-500 py-3 border-t border-gray-200 dark:border-gray-800"
             >
-              &lt;&lt; Volver al Menú Principal
+              &lt;&lt; Volver Atrás
             </button>
           </div>
         </div>
@@ -462,9 +438,23 @@ const PanelGestion = ({
   );
 };
 
-// --- 3. COMPONENTE PRINCIPAL (AdminMenu) ---
+// --- COMPONENTE PRINCIPAL (AdminMenu) ---
 export const AdminMenu = ({ onVolver }: { onVolver: () => void }) => {
-  const [subVista, setSubVista] = useState<SubVista>("PRINCIPAL");
+  // LÓGICA DE NAVEGACIÓN INTERNA (Subrutas)
+  // Obtenemos la subvista desde el HASH de la URL (ej: #ADMIN/PRODUCTOS -> PRODUCTOS)
+  const getSubVistaFromUrl = (): SubVista => {
+    const hash = window.location.hash;
+    const parts = hash.split("/");
+    if (parts.length > 1) {
+      const sub = parts[1].toUpperCase();
+      if (["PRODUCTOS", "RUBROS", "SILOS", "RXP"].includes(sub)) {
+        return sub as SubVista;
+      }
+    }
+    return "PRINCIPAL";
+  };
+
+  const [subVista, setSubVistaState] = useState<SubVista>(getSubVistaFromUrl());
   const [editandoId, setEditandoId] = useState<string | null>(null);
 
   // DATA
@@ -485,6 +475,25 @@ export const AdminMenu = ({ onVolver }: { onVolver: () => void }) => {
     message: "",
   });
   const closeModal = () => setModal({ ...modal, isOpen: false });
+
+  // Sincronizar estado con URL
+  useEffect(() => {
+    const handleHashChange = () => {
+      setSubVistaState(getSubVistaFromUrl());
+    };
+    window.addEventListener("popstate", handleHashChange); // Escuchar botón atrás
+    return () => window.removeEventListener("popstate", handleHashChange);
+  }, []);
+
+  // Función para navegar cambiando la URL
+  const navegarA = (nuevaSubVista: SubVista) => {
+    if (nuevaSubVista === "PRINCIPAL") {
+      window.history.pushState(null, "", "#ADMIN");
+    } else {
+      window.history.pushState(null, "", `#ADMIN/${nuevaSubVista}`);
+    }
+    setSubVistaState(nuevaSubVista);
+  };
 
   const handleSave = (
     data: AdminFormValues,
@@ -597,7 +606,7 @@ export const AdminMenu = ({ onVolver }: { onVolver: () => void }) => {
           {["PRODUCTOS", "RUBROS", "RXP", "SILOS"].map((v) => (
             <button
               key={v}
-              onClick={() => setSubVista(v as SubVista)}
+              onClick={() => navegarA(v as SubVista)} // Usamos navegarA en lugar de setSubVista
               className="border border-cyan-500 p-4 w-full text-cyan-600 dark:text-cyan-500 hover:bg-cyan-500 hover:text-white dark:hover:text-black uppercase font-bold text-sm transition-all rounded shadow-sm"
             >
               {v.replace("RXP", "Rubros x Producto")}
@@ -614,7 +623,14 @@ export const AdminMenu = ({ onVolver }: { onVolver: () => void }) => {
     );
   }
 
-  const commonProps = { editandoId, setEditandoId, setSubVista, onVolver };
+  // Props Comunes
+  const commonProps = {
+    editandoId,
+    setEditandoId,
+    onVolver: () => navegarA("PRINCIPAL"), // El panel vuelve al menú intermedio
+    keyId: "",
+    keyNombre: "",
+  };
 
   return (
     <div className="relative min-h-screen bg-gray-100 dark:bg-black font-mono transition-colors duration-300">
