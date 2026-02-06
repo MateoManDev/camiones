@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import DatePicker, { registerLocale } from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { es } from "date-fns/locale/es";
+// FIX: Importación correcta del locale
+import { es } from "date-fns/locale";
 // 1. IMPORTAR SONNER
 import { toast } from "sonner";
 
@@ -124,7 +125,6 @@ export const SilosYRechazos = ({ onVolver }: { onVolver: () => void }) => {
       <div
         className={`flex items-center justify-center min-h-screen w-full bg-gray-100 dark:bg-black p-4 transition-all duration-300 ${modal.isOpen || siloAjuste ? "opacity-60 blur-[2px] pointer-events-none scale-[0.99]" : "opacity-100 blur-0 scale-100"}`}
       >
-        {/* CORRECCIÓN: dark:bg-[#0a0a0a] */}
         <div className="border-2 border-yellow-500 dark:border-yellow-600 p-8 bg-white dark:bg-[#0a0a0a] shadow-xl dark:shadow-[0_0_20px_rgba(234,179,8,0.2)] w-full max-w-2xl transition-colors duration-300">
           <h2 className="text-center mb-8 text-xl font-bold tracking-[0.2em] text-yellow-600 dark:text-yellow-500 border-b-2 border-yellow-600 dark:border-yellow-900 pb-4 uppercase italic">
             [ Gestión y Monitoreo ]
@@ -216,7 +216,8 @@ export const SilosYRechazos = ({ onVolver }: { onVolver: () => void }) => {
 
               <DatePicker
                 selected={selectedDate}
-                onChange={(date) => setSelectedDate(date)}
+                // FIX: Tipado explícito para que TS no marque error implícito
+                onChange={(date: Date | null) => setSelectedDate(date)}
                 locale="es"
                 dateFormat="dd/MM/yyyy"
                 className="w-full bg-gray-50 dark:bg-black border border-gray-300 dark:border-gray-700 p-2 text-gray-900 dark:text-white text-xs mb-4 outline-none focus:border-yellow-500"
@@ -294,7 +295,6 @@ export const SilosYRechazos = ({ onVolver }: { onVolver: () => void }) => {
       {/* --- PANEL FLOTANTE: REGISTRO DE SALIDA (CAPA INTERMEDIA) --- */}
       {siloAjuste && !modal.isOpen && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 backdrop-blur-sm pointer-events-auto">
-          {/* CORRECCIÓN: dark:bg-[#0a0a0a] */}
           <div className="w-full max-w-sm border-2 border-yellow-500 dark:border-yellow-600 bg-white dark:bg-[#0a0a0a] p-6 shadow-2xl animate-in zoom-in duration-200">
             <div className="text-center border-b border-yellow-200 dark:border-yellow-900/50 pb-4 mb-4">
               <h3 className="text-yellow-600 dark:text-yellow-500 font-bold uppercase tracking-widest text-sm">

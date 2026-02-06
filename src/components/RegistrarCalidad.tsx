@@ -1,7 +1,11 @@
 import React, { useState } from "react";
 import { useLocalStorage } from "../hooks/useLocalStorage";
-// 1. IMPORTAR SONNER
 import { toast } from "sonner";
+
+// --- LIBRERÍAS DE VALIDACIÓN ---
+import { useForm, SubmitHandler } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 
 // --- INTERFACES ---
 interface Operacion {
@@ -25,6 +29,14 @@ interface Rubro {
   nombre: string;
 }
 
+// --- ESQUEMA DE VALIDACIÓN DINÁMICO ---
+// Validamos un objeto donde las claves son strings (codigos de rubro)
+// y los valores se convierten de string a número.
+const calidadSchema = z.record(
+  z.string(),
+  z.string().min(1, "Requerido").pipe(z.coerce.number()),
+);
+
 export const RegistrarCalidad = ({ onVolver }: { onVolver: () => void }) => {
   const [operaciones, setOperaciones] = useLocalStorage<Operacion[]>(
     "operaciones_dat",
@@ -36,55 +48,57 @@ export const RegistrarCalidad = ({ onVolver }: { onVolver: () => void }) => {
   const [operacionActiva, setOperacionActiva] = useState<Operacion | null>(
     null,
   );
-  const [valoresCalidad, setValoresCalidad] = useState<{
-    [key: string]: string;
-  }>({});
   const [showManual, setShowManual] = useState(false);
 
   const hoy = new Date().toISOString().split("T")[0];
 
-  // FILTRO: Camiones que ya arribaron y esperan análisis
   const camionesEsperandoCalidad = operaciones.filter(
     (op) => op.fechacup === hoy && op.estado === "A",
   );
 
+  // --- CONFIGURACIÓN DEL FORMULARIO ---
+  // FIX: Usamos <any> para permitir campos dinámicos y evitar el error "type never"
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<any>({
+    resolver: zodResolver(calidadSchema),
+    defaultValues: {},
+  });
+
   const seleccionarCamion = (op: Operacion) => {
     setOperacionActiva(op);
-    const rubrosDelProd = rxp.filter((r) => r.codigoprod === op.codprod);
-    const inicial: { [key: string]: string } = {};
-    rubrosDelProd.forEach((r) => (inicial[r.codigorub] = ""));
-    setValoresCalidad(inicial);
+    reset(); // Limpia valores anteriores
   };
 
-  const procesarCalidad = () => {
+  // --- PROCESAMIENTO (ONSUBMIT) ---
+  const onCalidadSubmit: SubmitHandler<Record<string, number>> = (data) => {
     if (!operacionActiva) return;
 
     const rubrosDelProd = rxp.filter(
       (r) => r.codigoprod === operacionActiva.codprod,
     );
 
-    // 1. Validar campos vacíos
-    const incompleto = rubrosDelProd.some(
-      (r) => valoresCalidad[r.codigorub] === "",
-    );
-    if (incompleto) {
-      toast.error("ERROR: DEBE COMPLETAR TODOS LOS VALORES DEL ANÁLISIS");
-      return;
-    }
-
+    // 1. Verificar si aprueba o rechaza
     let contRubCorr = 0;
     rubrosDelProd.forEach((r) => {
-      const valor = Number(valoresCalidad[r.codigorub]);
-      if (valor >= r.valmin && valor <= r.valmax) contRubCorr++;
+      // Zod ya convirtió el valor a número
+      const valor = data[r.codigorub];
+      if (valor >= r.valmin && valor <= r.valmax) {
+        contRubCorr++;
+      }
     });
 
-    // Lógica de aprobación
+    // Lógica de aprobación (Todos correctos o tolerancia de 1)
     const esAceptado =
       contRubCorr === rubrosDelProd.length ||
       (rubrosDelProd.length > 1 && contRubCorr === rubrosDelProd.length - 1);
 
     const nuevoEstado = esAceptado ? "C" : "R";
 
+    // 2. Actualizar Operaciones
     const nuevasOperaciones = operaciones.map((op) =>
       op.patente === operacionActiva.patente && op.fechacup === hoy
         ? { ...op, estado: nuevoEstado as any }
@@ -93,7 +107,7 @@ export const RegistrarCalidad = ({ onVolver }: { onVolver: () => void }) => {
 
     setOperaciones(nuevasOperaciones);
 
-    // 2. Feedback con Toasts
+    // 3. Notificar
     if (esAceptado) {
       toast.success(`CALIDAD APROBADA: ${operacionActiva.patente}`, {
         description: "Unidad liberada para descarga (Estado: C).",
@@ -104,22 +118,21 @@ export const RegistrarCalidad = ({ onVolver }: { onVolver: () => void }) => {
       });
     }
 
-    // Limpiar formulario inmediatamente
+    // 4. Limpiar
     setOperacionActiva(null);
-    setValoresCalidad({});
+    reset();
   };
 
   return (
     <div className="relative min-h-screen bg-gray-100 dark:bg-black font-mono transition-colors duration-300">
-      {/* CAPA DE FONDO: INTERFAZ DE CALIDAD */}
       <div className="flex items-center justify-center min-h-screen w-full bg-gray-100 dark:bg-black p-4 transition-all duration-300">
-        {/* PANEL PRINCIPAL (Fondo #0a0a0a para negro profundo) */}
-        <div className="border-2 border-violet-600 dark:border-violet-600 p-8 bg-white dark:bg-[#0a0a0a] shadow-xl dark:shadow-[0_0_20px_rgba(139,92,246,0.2)] w-full max-w-md transition-colors duration-300">
+        <div className="border-2 border-violet-600 dark:border-violet-600 p-8 bg-white dark:bg-[#0a0a0a] shadow-xl w-full max-w-md transition-colors duration-300">
           <h2 className="text-center mb-8 text-xl font-bold tracking-[0.2em] text-violet-600 dark:text-violet-500 border-b-2 border-violet-600 dark:border-violet-900 pb-4 uppercase italic">
             [ Registrar Calidad ]
           </h2>
 
           {!operacionActiva ? (
+            // --- LISTA DE ESPERA ---
             <div className="flex flex-col gap-4">
               <label className="text-[10px] text-violet-700 dark:text-violet-500 uppercase tracking-widest font-bold">
                 Unidades en Playa esperando Calada:
@@ -130,7 +143,7 @@ export const RegistrarCalidad = ({ onVolver }: { onVolver: () => void }) => {
                     <button
                       key={op.patente}
                       onClick={() => seleccionarCamion(op)}
-                      className="flex justify-between items-center p-3 border border-gray-300 dark:border-gray-800 bg-gray-50 dark:bg-black hover:border-violet-500 dark:hover:border-violet-500 transition-all group text-left"
+                      className="flex justify-between items-center p-3 border border-gray-300 dark:border-gray-800 bg-gray-50 dark:bg-black hover:border-violet-500 transition-all group text-left"
                     >
                       <div className="flex flex-col">
                         <span className="text-gray-900 dark:text-white font-bold">
@@ -140,19 +153,20 @@ export const RegistrarCalidad = ({ onVolver }: { onVolver: () => void }) => {
                           {op.codprod}
                         </span>
                       </div>
-                      <span className="text-[9px] font-bold text-violet-600 dark:text-violet-500 border border-violet-200 dark:border-violet-900 px-2 py-1 uppercase group-hover:bg-violet-500 group-hover:text-white dark:group-hover:bg-violet-900 dark:group-hover:text-black transition-colors">
+                      <span className="text-[9px] font-bold text-violet-600 dark:text-violet-500 border border-violet-200 dark:border-violet-900 px-2 py-1 uppercase group-hover:bg-violet-500 group-hover:text-white transition-colors">
                         Analizar
                       </span>
                     </button>
                   ))
                 ) : (
-                  <div className="text-center py-8 border border-dashed border-gray-300 dark:border-gray-800 text-gray-500 dark:text-gray-700 text-xs italic">
+                  <div className="text-center py-8 border border-dashed border-gray-300 dark:border-gray-800 text-gray-500 text-xs italic">
                     NO HAY CAMIONES ARRIBADOS PENDIENTES
                   </div>
                 )}
               </div>
             </div>
           ) : (
+            // --- FORMULARIO DE CALIDAD ---
             <div className="flex flex-col gap-5 animate-in slide-in-from-bottom duration-300">
               <div className="text-gray-900 dark:text-white text-[10px] border-b border-gray-300 dark:border-gray-800 pb-2 flex justify-between uppercase font-bold">
                 <span>UNIDAD: {operacionActiva.patente}</span>
@@ -161,60 +175,67 @@ export const RegistrarCalidad = ({ onVolver }: { onVolver: () => void }) => {
                 </span>
               </div>
 
-              <div className="space-y-4 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-                {rxp
-                  .filter((r) => r.codigoprod === operacionActiva.codprod)
-                  .map((r, index) => {
-                    const infoRubro = rubrosBase.find(
-                      (rb) => rb.codigo === r.codigorub,
-                    );
-                    return (
-                      <div key={r.codigorub} className="flex flex-col gap-1">
-                        <label className="text-[10px] text-gray-500 uppercase flex justify-between">
-                          <span>
-                            {infoRubro
-                              ? infoRubro.nombre
-                              : `RUBRO ${r.codigorub}`}
-                          </span>
-                          <span className="italic text-violet-600 dark:text-violet-500">
-                            RANGO: {r.valmin}-{r.valmax}
-                          </span>
-                        </label>
-                        <input
-                          type="number"
-                          className="bg-gray-50 dark:bg-black border border-gray-300 dark:border-gray-700 p-2 text-gray-900 dark:text-white focus:border-violet-500 outline-none text-center"
-                          value={valoresCalidad[r.codigorub]}
-                          autoFocus={index === 0}
-                          onChange={(e) =>
-                            setValoresCalidad({
-                              ...valoresCalidad,
-                              [r.codigorub]: e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-                    );
-                  })}
-              </div>
+              <form onSubmit={handleSubmit(onCalidadSubmit)}>
+                <div className="space-y-4 max-h-60 overflow-y-auto pr-2 custom-scrollbar mb-4">
+                  {rxp
+                    .filter((r) => r.codigoprod === operacionActiva.codprod)
+                    .map((r, index) => {
+                      const infoRubro = rubrosBase.find(
+                        (rb) => rb.codigo === r.codigorub,
+                      );
+                      const nombreRubro = infoRubro
+                        ? infoRubro.nombre
+                        : r.codigorub;
+                      const errorCampo = errors[r.codigorub];
 
-              <div className="flex flex-col gap-3 mt-4">
-                <button
-                  onClick={procesarCalidad}
-                  className="bg-transparent border border-violet-600 text-violet-600 dark:text-violet-500 py-3 hover:bg-violet-600 hover:text-white dark:hover:text-black transition-all font-bold uppercase text-sm"
-                >
-                  [ GUARDAR ANÁLISIS ]
-                </button>
-                <button
-                  onClick={() => setOperacionActiva(null)}
-                  className="text-gray-500 text-[10px] hover:text-black dark:hover:text-white uppercase text-center italic"
-                >
-                  Cancelar Carga
-                </button>
-              </div>
+                      return (
+                        <div key={r.codigorub} className="flex flex-col gap-1">
+                          <label className="text-[10px] text-gray-500 uppercase flex justify-between">
+                            <span>{nombreRubro}</span>
+                            <span className="italic text-violet-600 dark:text-violet-500">
+                              RANGO: {r.valmin}-{r.valmax}
+                            </span>
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            className={`bg-gray-50 dark:bg-black border p-2 text-gray-900 dark:text-white focus:border-violet-500 outline-none text-center ${errorCampo ? "border-red-500" : "border-gray-300 dark:border-gray-700"}`}
+                            placeholder="-" // Placeholder visible, input inicia vacío
+                            autoComplete="off"
+                            // IMPORTANTE: Registramos dinámicamente con el código del rubro
+                            {...register(r.codigorub)}
+                            autoFocus={index === 0}
+                          />
+                          {errorCampo && (
+                            <span className="text-[9px] text-red-500 text-right font-bold">
+                              * Requerido
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <button
+                    type="submit"
+                    className="bg-transparent border border-violet-600 text-violet-600 dark:text-violet-500 py-3 hover:bg-violet-600 hover:text-white dark:hover:text-black transition-all font-bold uppercase text-sm"
+                  >
+                    [ GUARDAR ANÁLISIS ]
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOperacionActiva(null)}
+                    className="text-gray-500 text-[10px] hover:text-black dark:hover:text-white uppercase text-center italic"
+                  >
+                    Cancelar Carga
+                  </button>
+                </div>
+              </form>
             </div>
           )}
 
-          {/* MANUAL DE AYUDA CORREGIDO */}
+          {/* MANUAL DE AYUDA */}
           <div className="mt-6 border border-gray-300 dark:border-gray-800 rounded-sm overflow-hidden font-mono">
             <button
               onClick={() => setShowManual(!showManual)}

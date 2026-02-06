@@ -85,7 +85,7 @@ const App = () => {
 
       <button
         onClick={toggleTheme}
-        className="fixed top-4 right-4 z-50 px-4 py-2 text-[10px] font-bold border-2 border-gray-400 dark:border-gray-800 bg-white dark:bg-black shadow-lg hover:border-cyan-500 transition-colors uppercase tracking-widest"
+        className="fixed top-4 right-4 z-2000 px-4 py-2 text-[10px] font-bold border-2 border-gray-400 dark:border-gray-800 bg-white dark:bg-black shadow-lg hover:border-cyan-500 transition-colors uppercase tracking-widest"
       >
         {theme === "dark" ? "[ MODO CLARO ]" : "[ MODO OSCURO ]"}
       </button>
