@@ -212,7 +212,7 @@ export const MenuDashboard = ({ alSeleccionar, onLogout }: DashboardProps) => {
         </div>
         <button
           onClick={onLogout}
-          className="text-[10px] font-bold text-red-700 dark:text-red-500 hover:text-white hover:bg-red-600 border border-transparent hover:border-red-600 px-4 py-2 transition-all uppercase tracking-widest rounded-sm"
+          className="text-[10px] font-bold text-red-700 dark:text-red-500 hover:text-white hover:bg-red-600 dark:hover:text-black border border-transparent hover:border-red-600 px-4 py-2 transition-all uppercase tracking-widest rounded-sm"
         >
           {t("menu.buttons.logout")}
         </button>

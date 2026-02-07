@@ -508,7 +508,9 @@ const resources = {
         empty: "NO PENDING TICKETS",
         btnEnter: "ENTER",
         btnBack: "<< Back to Main Menu",
-        modal: { confirmMessage: "Confirm arrival for plate {{patente}}?" },
+        modal: {
+          confirmMessage: "Confirm arrival for plate {{patente}}?",
+        },
         toast: {
           title: "ENTRY REGISTERED",
           desc: "Unit is now in the yard ready for Quality Check.",
