@@ -14,7 +14,7 @@ export const SettingsModal = ({
   theme,
   toggleTheme,
 }: SettingsModalProps) => {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   if (!isOpen) return null;
 
@@ -31,7 +31,7 @@ export const SettingsModal = ({
       <div className="bg-white dark:bg-[#111] w-full max-w-sm border-2 border-cyan-500 shadow-2xl shadow-cyan-500/20 p-6 relative">
         {/* HEADER */}
         <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6 uppercase tracking-widest border-b border-gray-200 dark:border-gray-800 pb-2">
-          Configuración
+          {t("settings.title")}
         </h3>
 
         <button
@@ -45,7 +45,7 @@ export const SettingsModal = ({
           {/* 1. SECCIÓN TEMA */}
           <div>
             <label className="text-xs font-bold text-cyan-600 dark:text-cyan-500 uppercase tracking-wider mb-3 block">
-              Apariencia / Tema
+              {t("settings.mode.title")}
             </label>
             <div className="flex gap-2">
               <button
@@ -56,7 +56,7 @@ export const SettingsModal = ({
                     : "bg-transparent text-gray-500 border-gray-300 dark:border-gray-700 hover:border-cyan-500"
                 }`}
               >
-                ☀ Claro
+                {t("settings.mode.b1")}
               </button>
               <button
                 onClick={() => theme === "light" && toggleTheme()}
@@ -66,7 +66,7 @@ export const SettingsModal = ({
                     : "bg-transparent text-gray-500 border-gray-300 dark:border-gray-700 hover:border-cyan-500"
                 }`}
               >
-                ☾ Oscuro
+                {t("settings.mode.b2")}
               </button>
             </div>
           </div>
@@ -74,7 +74,7 @@ export const SettingsModal = ({
           {/* 2. SECCIÓN IDIOMA (CONECTADO A I18NEXT) */}
           <div>
             <label className="text-xs font-bold text-cyan-600 dark:text-cyan-500 uppercase tracking-wider mb-3 block">
-              Idioma / Language
+              {t("settings.idiome")}
             </label>
             <div className="grid grid-cols-2 gap-2">
               {["ES", "EN"].map((lang) => (
@@ -95,7 +95,7 @@ export const SettingsModal = ({
         </div>
 
         <div className="mt-8 pt-4 border-t border-gray-200 dark:border-gray-800 text-center">
-          <p className="text-[9px] text-gray-400">LOGÍSTICA CENTZ v3.0</p>
+          <p className="text-[9px] text-gray-400">{t("settings.footer")}</p>
         </div>
       </div>
     </div>

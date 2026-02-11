@@ -385,6 +385,17 @@ const resources = {
           l3: "• Códigos: Sin espacios, solo letras y números.",
         },
       },
+      // --- SETTING MODAL ---
+      settings: {
+        title: "CONFIGURACION",
+        footer: "LOGÍSTICA CENTZ v3.0",
+        idiome: "IDIOMA",
+        mode: {
+          title: "Apariencia / Tema",
+          b1: "☀ Claro",
+          b2: "☾ Oscuro",
+        },
+      },
       // --- COMMON ---
       common: {
         confirm: "[ ? ] CONFIRMAR",
@@ -779,6 +790,16 @@ const resources = {
           l1: "• Products/Categories: Must be text.",
           l2: "• Silos: Can be numbers.",
           l3: "• Codes: No spaces, letters & numbers only.",
+        },
+      },
+      settings: {
+        title: "SETTINGS",
+        footer: "LOGÍSTICS CENTZ v3.0",
+        idiome: "LANGUAGE",
+        mode: {
+          title: "APPEARANCE / THEME",
+          b1: "☀ Light",
+          b2: "☾ Dark",
         },
       },
       common: {
